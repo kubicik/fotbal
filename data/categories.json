@@ -1,7 +1,8 @@
 [
   { "id": "cat-001", "name": "Rozcvičení", "slug": "rozcvičení", "color": "#22c55e" },
-  { "id": "cat-002", "name": "Technika",   "slug": "technika",   "color": "#3b82f6" },
-  { "id": "cat-003", "name": "Hra",        "slug": "hra",        "color": "#f97316" },
-  { "id": "cat-004", "name": "Kondice",    "slug": "kondice",    "color": "#ef4444" },
-  { "id": "cat-005", "name": "Závěr",      "slug": "závěr",      "color": "#a855f7" }
+  { "id": "cat-002", "name": "Technika",   "slug": "technika",   "color": "#60a5fa" },
+  { "id": "cat-003", "name": "Kombinace",  "slug": "kombinace",  "color": "#eab308" },
+  { "id": "cat-004", "name": "Rozehrávka", "slug": "rozehrávka", "color": "#a855f7" },
+  { "id": "cat-005", "name": "Hra",        "slug": "hra",        "color": "#f97316" },
+  { "id": "cat-006", "name": "Zápas",      "slug": "zápas",      "color": "#1e40af" }
 ]
