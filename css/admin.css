@@ -295,3 +295,12 @@ select.input { cursor: pointer; }
   .modal-overlay { padding: 0; align-items: flex-end; }
   .modal { border-radius: 12px 12px 0 0; max-width: 100%; }
 }
+
+/* ─── Concept editor ──────────────────────────────────────────────────────── */
+.concept-months-admin { display: flex; flex-direction: column; gap: 16px; margin-bottom: 12px; }
+.concept-month-row {
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.concept-month-row__header { display: flex; align-items: flex-start; gap: 8px; }
+.concept-month-row__num { font-weight: 700; color: var(--text-muted); font-size: 15px; padding-top: 28px; min-width: 20px; }

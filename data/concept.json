@@ -1,0 +1,32 @@
+{
+  "title": "Zpátky do tempa",
+  "season": "Jaro 2026",
+  "updatedAt": "2026-04-07",
+  "intro": "Tříměsíční plán rozvoje týmu FK Nový Jičín U8 (nar. 2018). Cílem je postupné budování herního stylu postaveného na odvaze, rozhledu a spolupráci.",
+  "months": [
+    {
+      "id": "m1",
+      "month": "Duben",
+      "theme": "Měsíc Odvahy",
+      "color": "#f97316",
+      "focus": "Zaměření na 1v1, kličkování v rychlosti, nebát se udělat chybu.",
+      "goal": "Rozběhat nohy."
+    },
+    {
+      "id": "m2",
+      "month": "Květen",
+      "theme": "Měsíc Rozhledu",
+      "color": "#3b82f6",
+      "focus": "Hlava nahoru, vnímání prostoru, přepínání po ztrátě míče.",
+      "goal": "Odstranit shlukování."
+    },
+    {
+      "id": "m3",
+      "month": "Červen",
+      "theme": "Měsíc Spolupráce",
+      "color": "#22c55e",
+      "focus": "Rozehrávka od brankáře, součinnost 2–3 hráčů, kreativita.",
+      "goal": "Moderní obraz hry."
+    }
+  ]
+}

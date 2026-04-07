@@ -141,8 +141,9 @@ function renderTrainingDetail(training, exercises, editMode) {
     const ex = exMap[item.exerciseId];
     if (!ex) return `<li class="training-ex training-ex--missing">Cvičení nenalezeno (${escHtml(item.exerciseId)})</li>`;
 
-    const imageHtml = ex.imageUrl
-      ? `<img src="${escHtml(ex.imageUrl)}" alt="${escHtml(ex.name)}" class="training-ex__image" loading="lazy">`
+    const imgSrc = ex.imageData || ex.imageUrl || '';
+    const imageHtml = imgSrc
+      ? `<img src="${escHtml(imgSrc)}" alt="${escHtml(ex.name)}" class="training-ex__image" loading="lazy">`
       : '';
 
     const videoHtml = ex.videoUrl
@@ -649,6 +650,155 @@ function renderExerciseForm(exercise, isNew) {
       <button type="submit" class="btn btn--primary btn--lg">💾 Uložit cvičení</button>
     </div>
   </form>`;
+}
+
+// ─── Concept page ─────────────────────────────────────────────────────────────
+
+function renderConceptPage(concept) {
+  if (!concept) {
+    return `<div class="page-header"><h1 class="page-title">Koncepce</h1></div>
+      <div class="empty-state"><div class="empty-state__icon">📋</div>
+      <p class="empty-state__text">Koncepce zatím nebyla vytvořena.<br>Nastavte ji v administraci.</p></div>`;
+  }
+
+  const monthsHtml = (concept.months || []).map((m, idx) => `
+    <article class="concept-month" style="--month-color:${escHtml(m.color || '#3b82f6')}">
+      <div class="concept-month__header">
+        <div class="concept-month__number">${idx + 1}</div>
+        <div>
+          <div class="concept-month__name">${escHtml(m.month)}</div>
+          <div class="concept-month__theme">${escHtml(m.theme)}</div>
+        </div>
+      </div>
+      <div class="concept-month__body">
+        <div class="concept-month__section">
+          <span class="concept-month__label">Zaměření</span>
+          <p class="concept-month__text">${escHtml(m.focus)}</p>
+        </div>
+        <div class="concept-month__goal">
+          <span class="concept-month__label">Cíl měsíce</span>
+          <strong class="concept-month__goal-text">${escHtml(m.goal)}</strong>
+        </div>
+      </div>
+    </article>`).join('');
+
+  return `<div class="page-header">
+    <div>
+      <h1 class="page-title">${escHtml(concept.title)}</h1>
+      <p class="page-subtitle">${escHtml(concept.season || '')} · FK Nový Jičín U8</p>
+    </div>
+  </div>
+  ${concept.intro ? `<p class="concept-intro">${escHtml(concept.intro)}</p>` : ''}
+  <div class="concept-months">${monthsHtml}</div>
+  ${concept.updatedAt ? `<p class="concept-updated">Aktualizováno: ${escHtml(concept.updatedAt)}</p>` : ''}`;
+}
+
+// ─── Calendar page ────────────────────────────────────────────────────────────
+
+function renderCalendarPage(trainings, year, month) {
+  const now    = new Date();
+  const y      = year  || now.getFullYear();
+  const m      = month !== undefined ? month : now.getMonth(); // 0-based
+  const first  = new Date(y, m, 1);
+  const last   = new Date(y, m + 1, 0);
+  const startDow = (first.getDay() + 6) % 7; // Mon=0
+
+  const monthNames = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+  const dayNames   = ['Po','Út','St','Čt','Pá','So','Ne'];
+
+  // Build map: date string → trainings
+  const byDate = {};
+  trainings.forEach(t => {
+    if (!byDate[t.date]) byDate[t.date] = [];
+    byDate[t.date].push(t);
+  });
+
+  // Prev/next month params
+  const prevM = m === 0 ? 11 : m - 1;
+  const prevY = m === 0 ? y - 1 : y;
+  const nextM = m === 11 ? 0 : m + 1;
+  const nextY = m === 11 ? y + 1 : y;
+
+  // Build grid cells
+  const totalCells = Math.ceil((startDow + last.getDate()) / 7) * 7;
+  let cells = '';
+  for (let i = 0; i < totalCells; i++) {
+    const dayNum = i - startDow + 1;
+    if (dayNum < 1 || dayNum > last.getDate()) {
+      cells += `<div class="cal-cell cal-cell--empty"></div>`;
+      continue;
+    }
+    const dateStr  = `${y}-${String(m + 1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+    const isToday  = dateStr === now.toISOString().split('T')[0];
+    const dayTrainings = byDate[dateStr] || [];
+    const dots = dayTrainings.map(t =>
+      `<a href="#/training/${escHtml(t.id)}" class="cal-event" title="${escHtml(t.title)}">${escHtml(t.title)}</a>`
+    ).join('');
+    cells += `<div class="cal-cell ${isToday ? 'cal-cell--today' : ''} ${dayTrainings.length ? 'cal-cell--has-event' : ''}">
+      <span class="cal-cell__day">${dayNum}</span>
+      ${dots}
+    </div>`;
+  }
+
+  // Trainings list for current month
+  const monthTrainings = trainings
+    .filter(t => t.date && t.date.startsWith(`${y}-${String(m + 1).padStart(2,'0')}`))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const listHtml = monthTrainings.length === 0
+    ? `<p class="cal-empty">V tomto měsíci žádné tréninky.</p>`
+    : monthTrainings.map(t => `
+      <a href="#/training/${escHtml(t.id)}" class="cal-list-item">
+        <div class="cal-list-item__date">${formatDateShort(t.date)}</div>
+        <div class="cal-list-item__info">
+          <strong>${escHtml(t.title)}</strong>
+          ${t.theme ? `<span class="cal-list-item__theme">· ${escHtml(t.theme)}</span>` : ''}
+        </div>
+        <div class="cal-list-item__meta">⏱ ${escHtml(String(t.duration_total))} min</div>
+      </a>`).join('');
+
+  const settings = (typeof DataLayer !== 'undefined') ? DataLayer.getSettings() : {};
+  const icsBtn = `<button class="btn btn--outline btn--sm" onclick="downloadICS()">📅 Stáhnout .ics</button>`;
+  const icalHint = settings.icalUrl
+    ? `<span class="cal-ical-info">Sdílený kalendář: <a href="${escHtml(settings.icalUrl)}" target="_blank" rel="noopener">odkaz</a></span>`
+    : '';
+
+  return `<div class="page-header">
+    <div>
+      <h1 class="page-title">Kalendář tréninků</h1>
+      <p class="page-subtitle">FK Nový Jičín U8</p>
+    </div>
+    <div class="page-header__actions">${icsBtn} ${icalHint}</div>
+  </div>
+
+  <div class="calendar-wrap">
+    <div class="cal-nav">
+      <a href="#/calendar/${prevY}/${prevM}" class="btn btn--outline btn--sm">← ${escHtml(monthNames[prevM])}</a>
+      <h2 class="cal-nav__title">${escHtml(monthNames[m])} ${y}</h2>
+      <a href="#/calendar/${nextY}/${nextM}" class="btn btn--outline btn--sm">${escHtml(monthNames[nextM])} →</a>
+    </div>
+
+    <div class="cal-grid">
+      ${dayNames.map(d => `<div class="cal-header">${d}</div>`).join('')}
+      ${cells}
+    </div>
+  </div>
+
+  <section class="cal-list-section">
+    <h2 class="cal-list-title">Tréninky — ${escHtml(monthNames[m])} ${y}</h2>
+    ${listHtml}
+  </section>`;
+}
+
+// ─── Settings (přesměrování do adminu) ───────────────────────────────────────
+
+function renderSettingsRedirect() {
+  return `<div class="page-header"><h1 class="page-title">Nastavení</h1></div>
+    <div class="empty-state">
+      <div class="empty-state__icon">🔐</div>
+      <p class="empty-state__text">Nastavení jsou dostupná pouze v administraci.</p>
+      <a href="admin.html" class="btn btn--primary">Otevřít administraci</a>
+    </div>`;
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────

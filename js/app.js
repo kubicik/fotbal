@@ -111,8 +111,22 @@ const App = (() => {
         }
         break;
 
+      case 'concept':
+        html = renderConceptPage(DataLayer.getConcept());
+        document.title = 'Koncepce — FK Nový Jičín U8';
+        break;
+
+      case 'calendar': {
+        const now = new Date();
+        const calYear  = route.id  ? parseInt(route.id)     : now.getFullYear();
+        const calMonth = route.action ? parseInt(route.action) : now.getMonth();
+        html = renderCalendarPage(DataLayer.getTrainings(), calYear, calMonth);
+        document.title = 'Kalendář — FK Nový Jičín U8';
+        break;
+      }
+
       case 'settings':
-        html = renderSettings();
+        html = renderSettingsRedirect();
         document.title = 'Nastavení — FK Nový Jičín U8';
         break;
 
@@ -630,6 +644,40 @@ const App = (() => {
     };
   }
 
+  // ─── ICS export ───────────────────────────────────────────────────────────
+
+  function downloadICS() {
+    const trainings = DataLayer.getTrainings();
+    const settings  = DataLayer.getSettings();
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      `PRODID:-//FK Nový Jičín U8//CS`,
+      `X-WR-CALNAME:${settings.calendarTitle || 'FK Nový Jičín U8 Tréninky'}`,
+      'CALSCALE:GREGORIAN'
+    ];
+    trainings.forEach(t => {
+      if (!t.date) return;
+      const d = t.date.replace(/-/g, '');
+      const exCount = (t.exercises || []).length;
+      lines.push('BEGIN:VEVENT');
+      lines.push(`UID:${t.id}@fnj-u8`);
+      lines.push(`DTSTART;VALUE=DATE:${d}`);
+      lines.push(`DTEND;VALUE=DATE:${d}`);
+      lines.push(`SUMMARY:${(t.title || 'Trénink').replace(/[,;\\]/g, '\\$&')}`);
+      lines.push(`DESCRIPTION:${[t.theme ? 'Téma: ' + t.theme : '', t.location ? 'Místo: ' + t.location : '', `Délka: ${t.duration_total} min`, `Cvičení: ${exCount}`].filter(Boolean).join('\\n').replace(/[,;\\]/g, '\\$&')}`);
+      if (t.location) lines.push(`LOCATION:${t.location.replace(/[,;\\]/g, '\\$&')}`);
+      lines.push('END:VEVENT');
+    });
+    lines.push('END:VCALENDAR');
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'treninky-fnj-u8.ics';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
   // ─── Boot ──────────────────────────────────────────────────────────────────
 
   async function init() {
@@ -647,9 +695,12 @@ const App = (() => {
     }
   }
 
-  return { init };
+  return { init, downloadICS };
 
 })();
+
+// Make downloadICS globally accessible (called from onclick in rendered HTML)
+function downloadICS() { App.downloadICS(); }
 
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 

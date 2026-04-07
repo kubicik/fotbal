@@ -90,17 +90,19 @@ function navigateSection(section) {
     l.classList.toggle('sidebar__link--active', l.dataset.section === section);
   });
 
-  const titles = { exercises: 'Cvičení', categories: 'Kategorie', users: 'Uživatelé', export: 'Export / Import' };
+  const titles = { exercises: 'Cvičení', categories: 'Kategorie', users: 'Uživatelé', concept: 'Koncepce', appsettings: 'Nastavení', export: 'Export / Import' };
   document.getElementById('admin-page-title').textContent = titles[section] || '';
 
   const actionsEl = document.getElementById('admin-header-actions');
   actionsEl.innerHTML = '';
 
   switch (section) {
-    case 'exercises':   renderExercisesSection();  break;
-    case 'categories':  renderCategoriesSection();  break;
-    case 'users':       renderUsersSection();        break;
-    case 'export':      renderExportSection();       break;
+    case 'exercises':   renderExercisesSection();   break;
+    case 'categories':  renderCategoriesSection();   break;
+    case 'users':       renderUsersSection();         break;
+    case 'concept':     renderConceptSection();       break;
+    case 'appsettings': renderAppSettingsSection();   break;
+    case 'export':      renderExportSection();        break;
   }
 }
 
@@ -663,6 +665,198 @@ function openUserModal(user) {
       showToast('Uživatel uložen!');
       renderUsersSection();
     });
+  });
+}
+
+// ─── CONCEPT SECTION ─────────────────────────────────────────────────────────
+
+function renderConceptSection() {
+  document.getElementById('admin-header-actions').innerHTML = '';
+  const concept = DataLayer.getConcept() || { title: '', season: '', intro: '', months: [] };
+
+  const monthsHtml = (concept.months || []).map((m, idx) => `
+    <div class="concept-month-row" data-idx="${idx}">
+      <div class="concept-month-row__header">
+        <span class="concept-month-row__num">${idx + 1}.</span>
+        <div class="form-row" style="flex:1">
+          <div class="form-field" style="min-width:110px">
+            <label class="form-label">Měsíc</label>
+            <input type="text" class="input input--sm" name="month-name" value="${esc(m.month || '')}" placeholder="Duben">
+          </div>
+          <div class="form-field form-field--grow">
+            <label class="form-label">Téma</label>
+            <input type="text" class="input input--sm" name="month-theme" value="${esc(m.theme || '')}" placeholder="Měsíc Odvahy">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Barva</label>
+            <div class="color-picker-row">
+              <input type="color" class="color-input" name="month-color" value="${esc(m.color || '#3b82f6')}">
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn--sm btn--danger btn--icon-only" data-action="remove-month" data-idx="${idx}" title="Odebrat měsíc">✕</button>
+      </div>
+      <div class="form-row" style="padding-left:1.5rem">
+        <div class="form-field form-field--grow">
+          <label class="form-label">Zaměření</label>
+          <textarea class="input textarea" name="month-focus" rows="2" placeholder="Popis zaměření...">${esc(m.focus || '')}</textarea>
+        </div>
+        <div class="form-field form-field--grow">
+          <label class="form-label">Cíl měsíce</label>
+          <input type="text" class="input input--sm" name="month-goal" value="${esc(m.goal || '')}" placeholder="Cíl...">
+        </div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('admin-content').innerHTML = `
+    <form id="concept-form" class="modal-form" style="max-width:800px" novalidate>
+      <div class="form-row">
+        <div class="form-field form-field--grow">
+          <label class="form-label">Název koncepce</label>
+          <input type="text" id="cf2-title" class="input" value="${esc(concept.title || '')}" placeholder="Zpátky do tempa">
+        </div>
+        <div class="form-field" style="min-width:140px">
+          <label class="form-label">Sezóna</label>
+          <input type="text" id="cf2-season" class="input" value="${esc(concept.season || '')}" placeholder="Jaro 2026">
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Úvodní text (volitelný)</label>
+        <textarea id="cf2-intro" class="input textarea" rows="3" placeholder="Krátký popis koncepce...">${esc(concept.intro || '')}</textarea>
+      </div>
+
+      <div id="concept-months-list" class="concept-months-admin">
+        ${monthsHtml}
+      </div>
+      <button type="button" class="btn btn--outline" id="btn-add-month">+ Přidat měsíc</button>
+
+      <div class="modal-actions" style="margin-top:1.5rem">
+        <a href="../index.html#/concept" target="_blank" class="btn btn--outline">👁 Náhled na webu</a>
+        <button type="submit" class="btn btn--primary">💾 Uložit koncepci</button>
+      </div>
+    </form>`;
+
+  document.getElementById('btn-add-month').addEventListener('click', () => {
+    const list = document.getElementById('concept-months-list');
+    const idx  = list.querySelectorAll('.concept-month-row').length;
+    const div  = document.createElement('div');
+    div.className = 'concept-month-row';
+    div.dataset.idx = idx;
+    div.innerHTML = `
+      <div class="concept-month-row__header">
+        <span class="concept-month-row__num">${idx + 1}.</span>
+        <div class="form-row" style="flex:1">
+          <div class="form-field" style="min-width:110px">
+            <label class="form-label">Měsíc</label>
+            <input type="text" class="input input--sm" name="month-name" placeholder="Měsíc">
+          </div>
+          <div class="form-field form-field--grow">
+            <label class="form-label">Téma</label>
+            <input type="text" class="input input--sm" name="month-theme" placeholder="Téma měsíce">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Barva</label>
+            <div class="color-picker-row"><input type="color" class="color-input" name="month-color" value="#3b82f6"></div>
+          </div>
+        </div>
+        <button type="button" class="btn btn--sm btn--danger btn--icon-only" data-action="remove-month" data-idx="${idx}" title="Odebrat">✕</button>
+      </div>
+      <div class="form-row" style="padding-left:1.5rem">
+        <div class="form-field form-field--grow">
+          <label class="form-label">Zaměření</label>
+          <textarea class="input textarea" name="month-focus" rows="2" placeholder="Popis zaměření..."></textarea>
+        </div>
+        <div class="form-field form-field--grow">
+          <label class="form-label">Cíl měsíce</label>
+          <input type="text" class="input input--sm" name="month-goal" placeholder="Cíl...">
+        </div>
+      </div>`;
+    list.appendChild(div);
+  });
+
+  document.getElementById('concept-months-list').addEventListener('click', e => {
+    if (e.target.dataset.action === 'remove-month') {
+      e.target.closest('.concept-month-row').remove();
+    }
+  });
+
+  document.getElementById('concept-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const rows = [...document.querySelectorAll('.concept-month-row')];
+    const months = rows.map(row => ({
+      id:    'm' + Math.random().toString(36).slice(2, 6),
+      month: row.querySelector('[name="month-name"]')?.value.trim() || '',
+      theme: row.querySelector('[name="month-theme"]')?.value.trim() || '',
+      color: row.querySelector('[name="month-color"]')?.value || '#3b82f6',
+      focus: row.querySelector('[name="month-focus"]')?.value.trim() || '',
+      goal:  row.querySelector('[name="month-goal"]')?.value.trim() || ''
+    })).filter(m => m.month);
+
+    DataLayer.saveConcept({
+      title:  document.getElementById('cf2-title').value.trim(),
+      season: document.getElementById('cf2-season').value.trim(),
+      intro:  document.getElementById('cf2-intro').value.trim(),
+      months
+    });
+    showToast('Koncepce uložena!');
+  });
+}
+
+// ─── APP SETTINGS SECTION ─────────────────────────────────────────────────────
+
+function renderAppSettingsSection() {
+  document.getElementById('admin-header-actions').innerHTML = '';
+  const s = DataLayer.getSettings() || {};
+
+  document.getElementById('admin-content').innerHTML = `
+    <form id="settings-form" class="modal-form" style="max-width:600px" novalidate>
+      <div class="export-card" style="margin-bottom:1.5rem">
+        <h2>Základní informace o týmu</h2>
+        <div class="form-row">
+          <div class="form-field form-field--grow">
+            <label class="form-label">Název týmu</label>
+            <input type="text" id="sf-team" class="input" value="${esc(s.teamName || 'FK Nový Jičín')}">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Věková skupina</label>
+            <input type="text" id="sf-age" class="input" value="${esc(s.ageGroup || 'U8')}">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Sezóna</label>
+            <input type="text" id="sf-season" class="input" value="${esc(s.season || '')}">
+          </div>
+        </div>
+      </div>
+
+      <div class="export-card" style="margin-bottom:1.5rem">
+        <h2>📅 Sdílený kalendář (iCal)</h2>
+        <p>Propojte externí kalendář (Google Calendar, Apple Calendar). Zadejte URL ve formátu iCal (.ics). Pozn.: načítání externích kalendářů závisí na CORS nastavení zdroje.</p>
+        <div class="form-field">
+          <label class="form-label">iCal URL</label>
+          <input type="url" id="sf-ical" class="input" value="${esc(s.icalUrl || '')}" placeholder="https://calendar.google.com/calendar/ical/...">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Název kalendáře (pro .ics export)</label>
+          <input type="text" id="sf-caltitle" class="input" value="${esc(s.calendarTitle || 'FK Nový Jičín U8 — Tréninky')}">
+        </div>
+        ${s.icalUrl ? `<p class="hint">Aktuální zdroj: <a href="${esc(s.icalUrl)}" target="_blank" rel="noopener">${esc(s.icalUrl)}</a></p>` : ''}
+      </div>
+
+      <div class="modal-actions">
+        <button type="submit" class="btn btn--primary">💾 Uložit nastavení</button>
+      </div>
+    </form>`;
+
+  document.getElementById('settings-form').addEventListener('submit', e => {
+    e.preventDefault();
+    DataLayer.saveSettings({
+      teamName:      document.getElementById('sf-team').value.trim(),
+      ageGroup:      document.getElementById('sf-age').value.trim(),
+      season:        document.getElementById('sf-season').value.trim(),
+      icalUrl:       document.getElementById('sf-ical').value.trim(),
+      calendarTitle: document.getElementById('sf-caltitle').value.trim()
+    });
+    showToast('Nastavení uloženo!');
   });
 }
 

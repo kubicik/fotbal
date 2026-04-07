@@ -8,6 +8,8 @@ const DATA_KEYS = {
   trainings:   'fnj_trainings',
   categories:  'fnj_categories',
   users:       'fnj_users',
+  concept:     'fnj_concept',
+  settings:    'fnj_settings',
   editMode:    'fnj_editmode',
   initialized: 'fnj_initialized'
 };
@@ -48,24 +50,21 @@ const DataLayer = (() => {
 
     console.log('First run — loading data from repository JSON files...');
     try {
-      const [exercisesRes, trainingsRes, categoriesRes, usersRes] = await Promise.all([
+      const [exRes, trRes, catRes, usrRes, conRes, setRes] = await Promise.all([
         fetch('./data/exercises.json'),
         fetch('./data/trainings.json'),
         fetch('./data/categories.json'),
-        fetch('./data/users.json')
+        fetch('./data/users.json'),
+        fetch('./data/concept.json'),
+        fetch('./data/settings.json')
       ]);
 
-      if (exercisesRes.ok)  saveToStorage(DATA_KEYS.exercises,  await exercisesRes.json());
-      else                  saveToStorage(DATA_KEYS.exercises,  []);
-
-      if (trainingsRes.ok)  saveToStorage(DATA_KEYS.trainings,  await trainingsRes.json());
-      else                  saveToStorage(DATA_KEYS.trainings,  []);
-
-      if (categoriesRes.ok) saveToStorage(DATA_KEYS.categories, await categoriesRes.json());
-      else                  saveToStorage(DATA_KEYS.categories, _defaultCategories());
-
-      if (usersRes.ok)      saveToStorage(DATA_KEYS.users,      await usersRes.json());
-      else                  saveToStorage(DATA_KEYS.users,      []);
+      saveToStorage(DATA_KEYS.exercises,  exRes.ok  ? await exRes.json()  : []);
+      saveToStorage(DATA_KEYS.trainings,  trRes.ok  ? await trRes.json()  : []);
+      saveToStorage(DATA_KEYS.categories, catRes.ok ? await catRes.json() : _defaultCategories());
+      saveToStorage(DATA_KEYS.users,      usrRes.ok ? await usrRes.json() : []);
+      if (conRes.ok) saveToStorage(DATA_KEYS.concept,  await conRes.json());
+      if (setRes.ok) saveToStorage(DATA_KEYS.settings, await setRes.json());
 
       localStorage.setItem(DATA_KEYS.initialized, '1');
     } catch (e) {
@@ -221,6 +220,29 @@ const DataLayer = (() => {
     saveToStorage(DATA_KEYS.trainings, trainings);
   }
 
+  // ─── Concept ─────────────────────────────────────────────────────────────
+
+  function getConcept() {
+    return getFromStorage(DATA_KEYS.concept) || null;
+  }
+
+  function saveConcept(concept) {
+    concept.updatedAt = new Date().toISOString().split('T')[0];
+    saveToStorage(DATA_KEYS.concept, concept);
+    return concept;
+  }
+
+  // ─── Settings ─────────────────────────────────────────────────────────────
+
+  function getSettings() {
+    return getFromStorage(DATA_KEYS.settings) || {};
+  }
+
+  function saveSettings(settings) {
+    saveToStorage(DATA_KEYS.settings, settings);
+    return settings;
+  }
+
   // ─── Edit mode ───────────────────────────────────────────────────────────
 
   function isEditMode() {
@@ -238,6 +260,8 @@ const DataLayer = (() => {
     setTimeout(() => _downloadJSON(getTrainings(),  'trainings.json'), 300);
     setTimeout(() => _downloadJSON(getCategories(), 'categories.json'), 600);
     setTimeout(() => _downloadJSON(getUsers(),      'users.json'),      900);
+    const concept  = getConcept();  if (concept)  setTimeout(() => _downloadJSON(concept,          'concept.json'),  1200);
+    const settings = getSettings(); if (settings) setTimeout(() => _downloadJSON(settings,         'settings.json'), 1500);
   }
 
   function _downloadJSON(data, filename) {
@@ -291,24 +315,30 @@ const DataLayer = (() => {
 
   async function reloadFromRepo() {
     const ts = Date.now();
-    const [exRes, trRes, catRes, usrRes] = await Promise.all([
+    const [exRes, trRes, catRes, usrRes, conRes, setRes] = await Promise.all([
       fetch('./data/exercises.json?'  + ts),
       fetch('./data/trainings.json?'  + ts),
       fetch('./data/categories.json?' + ts),
-      fetch('./data/users.json?'      + ts)
+      fetch('./data/users.json?'      + ts),
+      fetch('./data/concept.json?'    + ts),
+      fetch('./data/settings.json?'   + ts)
     ]);
 
     if (!exRes.ok || !trRes.ok) throw new Error('Nepodařilo se načíst soubory z repozitáře.');
 
-    const exercises   = await exRes.json();
-    const trainings   = await trRes.json();
-    const categories  = catRes.ok  ? await catRes.json()  : _defaultCategories();
-    const users       = usrRes.ok  ? await usrRes.json()  : [];
+    const exercises  = await exRes.json();
+    const trainings  = await trRes.json();
+    const categories = catRes.ok ? await catRes.json() : _defaultCategories();
+    const users      = usrRes.ok ? await usrRes.json() : [];
+    const concept    = conRes.ok ? await conRes.json() : null;
+    const settings   = setRes.ok ? await setRes.json() : {};
 
     saveToStorage(DATA_KEYS.exercises,  exercises);
     saveToStorage(DATA_KEYS.trainings,  trainings);
     saveToStorage(DATA_KEYS.categories, categories);
     saveToStorage(DATA_KEYS.users,      users);
+    if (concept)  saveToStorage(DATA_KEYS.concept,  concept);
+    if (settings) saveToStorage(DATA_KEYS.settings, settings);
     return { exercises: exercises.length, trainings: trainings.length };
   }
 
@@ -320,6 +350,8 @@ const DataLayer = (() => {
     getTrainings, getTrainingById, saveTraining, deleteTraining,
     getCategories, getCategoryBySlug, saveCategory, deleteCategory,
     getUsers, getUserById, saveUser, deleteUser,
+    getConcept, saveConcept,
+    getSettings, saveSettings,
     isEditMode, setEditMode,
     exportData, importFromFiles, reloadFromRepo,
     generateId
