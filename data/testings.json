@@ -1,0 +1,31 @@
+[
+  {
+    "id": "tevt-0407",
+    "date": "2026-04-07",
+    "name": "Testování rychlosti",
+    "description": "Rychlost 30m s přestávkou 15 sekund a opakování",
+    "tests": [
+      {
+        "id": "tt-0407-01",
+        "testName": "Rychlost 30m (pauza 15s)",
+        "unit": "s",
+        "lowerIsBetter": true,
+        "results": [
+          { "playerId": "plr-002", "values": [7.39, 7.45] },
+          { "playerId": "plr-004", "values": [6.14, 6.09] },
+          { "playerId": "plr-005", "values": [5.90, 5.75] },
+          { "playerId": "plr-006", "values": [6.19, 6.36] },
+          { "playerId": "plr-007", "values": [6.02, 6.40] },
+          { "playerId": "plr-008", "values": [6.04, 5.76] },
+          { "playerId": "plr-010", "values": [5.80, 6.32] },
+          { "playerId": "plr-011", "values": [6.78, 7.12] },
+          { "playerId": "plr-013", "values": [6.76, 6.83] },
+          { "playerId": "plr-014", "values": [6.00, 6.43] },
+          { "playerId": "plr-015", "values": [7.15, 7.31] },
+          { "playerId": "plr-016", "values": [6.40, 6.70] },
+          { "playerId": "plr-017", "values": [6.50, 7.68] }
+        ]
+      }
+    ]
+  }
+]

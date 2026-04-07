@@ -90,7 +90,7 @@ function navigateSection(section) {
     l.classList.toggle('sidebar__link--active', l.dataset.section === section);
   });
 
-  const titles = { trainings: 'Tréninky', exercises: 'Cvičení', categories: 'Kategorie', users: 'Uživatelé', 'players-admin': 'Soupiska', concept: 'Koncepce', appsettings: 'Nastavení' };
+  const titles = { trainings: 'Tréninky', exercises: 'Cvičení', categories: 'Kategorie', users: 'Uživatelé', 'players-admin': 'Soupiska', 'testings-admin': 'Testování', concept: 'Koncepce', appsettings: 'Nastavení' };
   document.getElementById('admin-page-title').textContent = titles[section] || '';
 
   const actionsEl = document.getElementById('admin-header-actions');
@@ -101,8 +101,9 @@ function navigateSection(section) {
     case 'exercises':     renderExercisesSection();     break;
     case 'categories':    renderCategoriesSection();    break;
     case 'users':         renderUsersSection();         break;
-    case 'players-admin': renderPlayersAdminSection();  break;
-    case 'concept':       renderConceptSection();       break;
+    case 'players-admin':  renderPlayersAdminSection();  break;
+    case 'testings-admin': renderTestingsAdminSection(); break;
+    case 'concept':        renderConceptSection();       break;
     case 'appsettings':   renderAppSettingsSection();   break;
   }
 }
@@ -196,7 +197,8 @@ const EVENT_TYPES = {
   trénink:     { label: 'Trénink',     color: '#1e40af', icon: '⚽' },
   zapas_doma:  { label: 'Zápas doma',  color: '#16a34a', icon: '🏠' },
   zapas_venku: { label: 'Zápas venku', color: '#ea580c', icon: '🚌' },
-  turnaj:      { label: 'Turnaj',      color: '#9333ea', icon: '🏆' }
+  turnaj:      { label: 'Turnaj',      color: '#9333ea', icon: '🏆' },
+  jine:        { label: 'Jiné',        color: '#6b7280', icon: '📌' }
 };
 
 // Phase category mapping for pre-populating composer
@@ -1331,7 +1333,8 @@ function renderAppSettingsSection() {
     { value: 'trénink',     label: '⚽ Trénink' },
     { value: 'zapas_doma',  label: '🏠 Zápas doma' },
     { value: 'zapas_venku', label: '🚌 Zápas venku' },
-    { value: 'turnaj',      label: '🏆 Turnaj' }
+    { value: 'turnaj',      label: '🏆 Turnaj' },
+    { value: 'jine',        label: '📌 Jiné' }
   ];
 
   function renderRuleRow(rule) {
@@ -1407,8 +1410,7 @@ function renderPlayersAdminSection() {
             <th>Jméno</th>
             <th>Pozice</th>
             <th>Nožička</th>
-            <th>Testy</th>
-            <th style="width:180px"></th>
+            <th style="width:140px"></th>
           </tr></thead>
           <tbody>
             ${players.map(p => `
@@ -1417,10 +1419,8 @@ function renderPlayersAdminSection() {
                 <td>${esc(p.name)}</td>
                 <td>${esc(p.position || '—')}</td>
                 <td>${esc(p.dominantFoot || '—')}</td>
-                <td>${(p.tests || []).length}</td>
                 <td class="td-actions">
                   <button class="btn btn--sm btn--outline" data-action="edit-player" data-id="${esc(p.id)}">Upravit</button>
-                  <button class="btn btn--sm btn--primary" data-action="test-player" data-id="${esc(p.id)}">Testovat</button>
                   <button class="btn btn--sm btn--danger"  data-action="del-player"  data-id="${esc(p.id)}">Smazat</button>
                 </td>
               </tr>`).join('')}
@@ -1433,7 +1433,6 @@ function renderPlayersAdminSection() {
   document.getElementById('admin-content').addEventListener('click', e => {
     const action = e.target.dataset.action;
     if (action === 'edit-player') openPlayerModal(DataLayer.getPlayerById(e.target.dataset.id));
-    if (action === 'test-player') openTestingModal(DataLayer.getPlayerById(e.target.dataset.id));
     if (action === 'del-player') {
       const p = DataLayer.getPlayerById(e.target.dataset.id);
       if (p && confirm(`Smazat hráče "${p.name}"?`)) {
@@ -1515,153 +1514,230 @@ function openPlayerModal(player) {
   });
 }
 
-function openTestingModal(player) {
-  if (!player) return;
-  currentSection = 'players-admin';
-  document.getElementById('admin-page-title').textContent = `Testování — ${player.name}`;
+// ─── Testing events admin ─────────────────────────────────────────────────────
+
+function renderTestingsAdminSection() {
+  const actionsEl = document.getElementById('admin-header-actions');
+  actionsEl.innerHTML = `<button class="btn btn--primary" id="btn-new-testing">+ Nová událost</button>`;
+  document.getElementById('btn-new-testing').addEventListener('click', () => openTestingEventEditor(null));
+
+  const events = DataLayer.getTestingEvents().sort((a, b) => b.date.localeCompare(a.date));
+
+  const html = events.length === 0
+    ? `<div class="empty-state"><p>Žádné testovací události. Vytvořte první.</p></div>`
+    : `<div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Datum</th><th>Název</th><th>Testy</th><th>Hráčů</th><th style="width:140px"></th>
+          </tr></thead>
+          <tbody>
+            ${events.map(evt => `<tr>
+              <td>${esc(evt.date)}</td>
+              <td class="td-name">${esc(evt.name)}</td>
+              <td>${(evt.tests || []).length}</td>
+              <td>${(evt.tests || []).reduce((s, t) => s + (t.results || []).length, 0)}</td>
+              <td class="td-actions">
+                <button class="btn btn--sm btn--outline" data-action="edit-tevt" data-id="${esc(evt.id)}">Upravit</button>
+                <button class="btn btn--sm btn--danger"  data-action="del-tevt"  data-id="${esc(evt.id)}">Smazat</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+  document.getElementById('admin-content').innerHTML = html;
+
+  document.getElementById('admin-content').addEventListener('click', e => {
+    if (e.target.dataset.action === 'edit-tevt') openTestingEventEditor(DataLayer.getTestingEventById(e.target.dataset.id));
+    if (e.target.dataset.action === 'del-tevt') {
+      const evt = DataLayer.getTestingEventById(e.target.dataset.id);
+      if (evt && confirm(`Smazat testování "${evt.name}"?`)) {
+        DataLayer.deleteTestingEvent(e.target.dataset.id);
+        showToast('Testování smazáno.');
+        renderTestingsAdminSection();
+      }
+    }
+  });
+}
+
+function openTestingEventEditor(event) {
+  currentSection = 'testings-admin';
+  const isNew = !event;
+  const evt = event || { name: '', date: new Date().toISOString().split('T')[0], description: '', tests: [] };
+  const players = DataLayer.getPlayers().sort((a, b) => (a.number || 99) - (b.number || 99));
+
+  document.getElementById('admin-page-title').textContent = isNew ? 'Nové testování' : `Upravit: ${evt.name}`;
   document.getElementById('admin-header-actions').innerHTML = '';
 
-  // Collect all test names for datalist
-  const allTestNames = [...new Set(
-    DataLayer.getPlayers().flatMap(p => (p.tests || []).map(t => t.testName)).filter(Boolean)
-  )];
+  document.getElementById('admin-content').innerHTML = buildTestingEventHTML(evt, players);
+  bindTestingEventEditorEvents(evt, players);
+}
 
-  const tests = (player.tests || []).slice().reverse();
+function buildTestingEventHTML(evt, players) {
+  const testsHtml = (evt.tests || []).map((test, ti) => buildTestCardHTML(test, ti, players)).join('');
 
-  const historyRows = tests.map(test => {
-    const best = test.lowerIsBetter
-      ? Math.min(...test.attempts)
-      : Math.max(...test.attempts);
-    const attemptsDisplay = test.attempts.map(a =>
-      a === best ? `<strong class="best-val">${a}</strong>` : String(a)
-    ).join(', ');
-    return `<tr>
-      <td>${esc(test.date)}</td>
-      <td>${esc(test.testName)}</td>
-      <td class="td-attempts">${attemptsDisplay}</td>
-      <td><span class="best-val">${best}</span></td>
-      <td>${esc(test.unit)}</td>
-      <td><button class="btn btn--sm btn--danger btn--icon-only" data-action="del-test" data-test-id="${esc(test.id)}" title="Smazat">✕</button></td>
-    </tr>`;
-  }).join('');
-
-  const today = new Date().toISOString().split('T')[0];
-
-  document.getElementById('admin-content').innerHTML = `
-    <div class="comp-topbar" style="margin-bottom:1.5rem">
-      <button type="button" class="btn btn--outline" id="test-back">← Zpět na soupisku</button>
-      <h2 class="comp-topbar__title">${esc(player.name)}</h2>
+  return `
+    <div class="comp-topbar">
+      <button type="button" class="btn btn--outline" id="tevt-back">← Zpět</button>
+      <button type="button" class="btn btn--primary" id="tevt-save">💾 Uložit</button>
     </div>
 
-    ${tests.length > 0 ? `
-    <div class="table-wrap" style="margin-bottom:2rem">
-      <table class="test-history">
-        <thead><tr>
-          <th>Datum</th><th>Test</th><th>Pokusy</th><th>Nejlepší</th><th>Jednotka</th><th></th>
-        </tr></thead>
-        <tbody id="test-history-body">${historyRows}</tbody>
-      </table>
-    </div>` : `<p class="empty-inline" style="margin-bottom:1.5rem">Zatím žádné testy. Přidejte první níže.</p>`}
+    <input type="hidden" id="tevt-id" value="${esc(evt.id || '')}">
 
-    <div class="export-card">
-      <h3 style="margin-bottom:1rem">Přidat nový test</h3>
-      <datalist id="test-names-list">
-        ${allTestNames.map(n => `<option value="${esc(n)}">`).join('')}
-      </datalist>
+    <div class="export-card" style="margin-bottom:1.5rem">
       <div class="form-row">
         <div class="form-field form-field--grow">
-          <label class="form-label">Název testu <span class="req">*</span></label>
-          <input type="text" id="tf-name" class="input" list="test-names-list" placeholder="Rychlost 30m bez míče" autocomplete="off">
+          <label class="form-label">Název události <span class="req">*</span></label>
+          <input type="text" id="tevt-name" class="input" value="${esc(evt.name)}" placeholder="Testování rychlosti">
         </div>
         <div class="form-field">
           <label class="form-label">Datum</label>
-          <input type="date" id="tf-date" class="input" value="${esc(today)}">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-field">
-          <label class="form-label">Jednotka</label>
-          <input type="text" id="tf-unit" class="input" placeholder="s / m / počet / cm" style="max-width:100px">
-        </div>
-        <div class="form-field" style="align-self:flex-end">
-          <label class="form-label form-label--checkbox">
-            <input type="checkbox" id="tf-lower"> Nižší = lepší (čas, vzdálenost)
-          </label>
+          <input type="date" id="tevt-date" class="input" value="${esc(evt.date)}">
         </div>
       </div>
       <div class="form-field">
-        <label class="form-label">Pokusy</label>
-        <div id="attempt-list" class="attempt-list">
-          <input type="number" class="input input--sm attempt-val" step="0.01" placeholder="0">
-          <button type="button" class="btn btn--sm btn--outline" id="btn-add-attempt">+ Přidat pokus</button>
-        </div>
-        <div class="attempt-best-hint" id="attempt-best-hint"></div>
+        <label class="form-label">Popis</label>
+        <input type="text" id="tevt-desc" class="input" value="${esc(evt.description || '')}" placeholder="Krátký popis testování">
       </div>
-      <button type="button" class="btn btn--primary" id="btn-add-test">✓ Přidat test</button>
-    </div>`;
+    </div>
 
-  // Back
-  document.getElementById('test-back').addEventListener('click', () => navigateSection('players-admin'));
+    <div id="tevt-tests-wrap">${testsHtml}</div>
 
-  // Delete test
-  document.getElementById('admin-content').addEventListener('click', e => {
-    if (e.target.dataset.action === 'del-test') {
-      if (!confirm('Smazat tento test?')) return;
-      DataLayer.deletePlayerTest(player.id, e.target.dataset.testId);
-      showToast('Test smazán.');
-      openTestingModal(DataLayer.getPlayerById(player.id));
+    <button type="button" class="btn btn--outline" id="tevt-add-test" style="margin-top:0.5rem">+ Přidat test</button>`;
+}
+
+function buildTestCardHTML(test, testIdx, players) {
+  const attempts = test.results && test.results.length > 0
+    ? Math.max(...test.results.map(r => (r.values || []).length), 1)
+    : 2;
+
+  const attemptHeaders = Array.from({ length: attempts }, (_, i) =>
+    `<th class="tevt-attempt-th">Pokus ${i + 1}</th>`).join('');
+
+  const playerRows = players.map(p => {
+    const result = (test.results || []).find(r => r.playerId === p.id);
+    const vals = result ? result.values : [];
+    const valCells = Array.from({ length: attempts }, (_, i) =>
+      `<td><input type="number" class="input input--sm tevt-val" step="0.01" placeholder="—" value="${vals[i] != null ? esc(String(vals[i])) : ''}" data-player="${esc(p.id)}" data-attempt="${i}"></td>`
+    ).join('');
+    return `<tr data-player-id="${esc(p.id)}">
+      <td class="tevt-player-name">${p.number != null ? `<span class="tevt-num">${esc(String(p.number))}</span>` : ''} ${esc(p.name)}</td>
+      ${valCells}
+      <td class="tevt-addcell"></td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="tevt-test export-card" data-test-idx="${testIdx}" data-attempts="${attempts}">
+    <div class="tevt-test-header">
+      <div class="tevt-test-config">
+        <input type="text" class="input tevt-testname" placeholder="Název testu (např. Rychlost 30m)" value="${esc(test.testName || '')}">
+        <input type="text" class="input input--sm tevt-unit" placeholder="jednotka (s, m, …)" value="${esc(test.unit || '')}" style="max-width:100px">
+        <label class="form-label form-label--checkbox" style="white-space:nowrap">
+          <input type="checkbox" class="tevt-lower" ${test.lowerIsBetter ? 'checked' : ''}> Nižší = lepší
+        </label>
+      </div>
+      <button type="button" class="btn btn--sm btn--danger tevt-remove-test">Odebrat test</button>
+    </div>
+    <div class="table-wrap tevt-results-wrap">
+      <table class="tevt-results-table">
+        <thead><tr>
+          <th class="tevt-player-col">Hráč</th>
+          ${attemptHeaders}
+          <th class="tevt-addcol"><button type="button" class="btn btn--sm btn--outline tevt-addattempt">+ Pokus</button></th>
+        </tr></thead>
+        <tbody>${playerRows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function bindTestingEventEditorEvents(evt, players) {
+  document.getElementById('tevt-back').addEventListener('click', () => navigateSection('testings-admin'));
+
+  document.getElementById('tevt-save').addEventListener('click', () => saveTestingEventFromEditor(players));
+
+  document.getElementById('tevt-add-test').addEventListener('click', () => {
+    const wrap = document.getElementById('tevt-tests-wrap');
+    const currentCount = wrap.querySelectorAll('.tevt-test').length;
+    const newTest = { testName: '', unit: '', lowerIsBetter: false, results: [] };
+    const div = document.createElement('div');
+    div.innerHTML = buildTestCardHTML(newTest, currentCount, players);
+    wrap.appendChild(div.firstElementChild);
+    bindTestCardEvents(wrap.lastElementChild);
+  });
+
+  document.querySelectorAll('.tevt-test').forEach(card => bindTestCardEvents(card));
+}
+
+function bindTestCardEvents(card) {
+  card.querySelector('.tevt-remove-test').addEventListener('click', () => {
+    if (confirm('Odebrat tento test?')) card.remove();
+  });
+
+  card.querySelector('.tevt-addattempt').addEventListener('click', () => {
+    const attempts = parseInt(card.dataset.attempts) + 1;
+    card.dataset.attempts = attempts;
+
+    const addColTh = card.querySelector('.tevt-addcol');
+    const th = document.createElement('th');
+    th.className = 'tevt-attempt-th';
+    th.textContent = `Pokus ${attempts}`;
+    addColTh.parentNode.insertBefore(th, addColTh);
+
+    card.querySelectorAll('tbody tr').forEach(row => {
+      const playerId = row.dataset.playerId;
+      const addCell = row.querySelector('.tevt-addcell');
+      const td = document.createElement('td');
+      td.innerHTML = `<input type="number" class="input input--sm tevt-val" step="0.01" placeholder="—" data-player="${esc(playerId)}" data-attempt="${attempts - 1}">`;
+      row.insertBefore(td, addCell);
+    });
+  });
+}
+
+function saveTestingEventFromEditor(players) {
+  const id = document.getElementById('tevt-id').value || undefined;
+  const name = document.getElementById('tevt-name').value.trim();
+  const date = document.getElementById('tevt-date').value;
+  const description = document.getElementById('tevt-desc').value.trim();
+
+  if (!name) { showToast('Zadejte název události.', 'error'); return; }
+  if (!date) { showToast('Zadejte datum.', 'error'); return; }
+
+  const tests = [];
+  document.querySelectorAll('.tevt-test').forEach(card => {
+    const testName = card.querySelector('.tevt-testname').value.trim();
+    const unit = card.querySelector('.tevt-unit').value.trim();
+    const lowerIsBetter = card.querySelector('.tevt-lower').checked;
+    const numAttempts = parseInt(card.dataset.attempts);
+
+    // Collect values per player
+    const playerMap = {};
+    card.querySelectorAll('.tevt-val').forEach(input => {
+      const pid = input.dataset.player;
+      const aidx = parseInt(input.dataset.attempt);
+      const val = parseFloat(input.value);
+      if (!playerMap[pid]) playerMap[pid] = [];
+      if (!isNaN(val)) {
+        while (playerMap[pid].length <= aidx) playerMap[pid].push(null);
+        playerMap[pid][aidx] = val;
+      }
+    });
+
+    const results = Object.entries(playerMap)
+      .map(([playerId, values]) => ({ playerId, values: values.filter(v => v != null) }))
+      .filter(r => r.values.length > 0);
+
+    if (testName) {
+      tests.push({
+        id: DataLayer.generateId('tt'),
+        testName, unit, lowerIsBetter, results
+      });
     }
   });
 
-  // Add attempt
-  document.getElementById('btn-add-attempt').addEventListener('click', () => {
-    const list = document.getElementById('attempt-list');
-    const inp = document.createElement('input');
-    inp.type = 'number'; inp.className = 'input input--sm attempt-val'; inp.step = '0.01'; inp.placeholder = '0';
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button'; removeBtn.className = 'btn btn--sm btn--danger btn--icon-only';
-    removeBtn.textContent = '✕';
-    removeBtn.addEventListener('click', () => { inp.remove(); removeBtn.remove(); updateAttemptBest(); });
-    // Insert before the "add" button
-    const addBtn = document.getElementById('btn-add-attempt');
-    list.insertBefore(inp, addBtn);
-    list.insertBefore(removeBtn, addBtn);
-    updateAttemptBest();
-  });
-
-  // Live best hint
-  document.getElementById('attempt-list').addEventListener('input', updateAttemptBest);
-  document.getElementById('tf-lower').addEventListener('change', updateAttemptBest);
-  document.getElementById('tf-unit').addEventListener('input', updateAttemptBest);
-
-  function updateAttemptBest() {
-    const vals = [...document.querySelectorAll('.attempt-val')]
-      .map(i => parseFloat(i.value)).filter(v => !isNaN(v));
-    const hint = document.getElementById('attempt-best-hint');
-    if (!vals.length) { hint.textContent = ''; return; }
-    const lower = document.getElementById('tf-lower').checked;
-    const best = lower ? Math.min(...vals) : Math.max(...vals);
-    const unit = document.getElementById('tf-unit').value || '';
-    hint.textContent = `Nejlepší: ${best} ${unit}`;
-  }
-
-  // Submit test
-  document.getElementById('btn-add-test').addEventListener('click', () => {
-    const testName = document.getElementById('tf-name').value.trim();
-    const date     = document.getElementById('tf-date').value;
-    const unit     = document.getElementById('tf-unit').value.trim();
-    const lower    = document.getElementById('tf-lower').checked;
-    const attempts = [...document.querySelectorAll('.attempt-val')]
-      .map(i => parseFloat(i.value)).filter(v => !isNaN(v));
-
-    if (!testName) { showToast('Zadejte název testu.', 'error'); return; }
-    if (!date)     { showToast('Zadejte datum.', 'error'); return; }
-    if (!attempts.length) { showToast('Zadejte alespoň jeden pokus.', 'error'); return; }
-
-    DataLayer.addPlayerTest(player.id, { date, testName, unit, lowerIsBetter: lower, attempts });
-    showToast('Test přidán!');
-    openTestingModal(DataLayer.getPlayerById(player.id));
-  });
+  DataLayer.saveTestingEvent({ id, name, date, description, tests });
+  showToast('Testování uloženo!');
+  navigateSection('testings-admin');
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────

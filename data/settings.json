@@ -13,6 +13,9 @@
     { "keyword": "away",       "type": "zapas_venku" },
     { "keyword": "turnaj",     "type": "turnaj" },
     { "keyword": "tournament", "type": "turnaj" },
-    { "keyword": "cup",        "type": "turnaj" }
+    { "keyword": "cup",        "type": "turnaj" },
+    { "keyword": "sraz",       "type": "jine" },
+    { "keyword": "výjezd",     "type": "jine" },
+    { "keyword": "výlet",      "type": "jine" }
   ]
 }

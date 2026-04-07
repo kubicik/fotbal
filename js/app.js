@@ -134,6 +134,21 @@ const App = (() => {
         document.title = 'Soupiska — FK Nový Jičín U8';
         break;
 
+      case 'testings':
+        html = renderTestingsPage(DataLayer.getTestingEvents());
+        document.title = 'Testování — FK Nový Jičín U8';
+        break;
+
+      case 'testing':
+        if (route.id) {
+          const tevt = DataLayer.getTestingEventById(route.id);
+          html = renderTestingDetail(tevt, DataLayer.getPlayers());
+          document.title = tevt ? `${tevt.name} — FK Nový Jičín U8` : 'Testování — FK Nový Jičín U8';
+        } else {
+          html = renderNotFound();
+        }
+        break;
+
       case 'settings':
         html = renderSettingsRedirect();
         document.title = 'Nastavení — FK Nový Jičín U8';
@@ -159,7 +174,7 @@ const App = (() => {
       link.classList.remove('nav__link--active');
       const href = link.getAttribute('href') || '';
       const linkSection = href.replace('#/', '').split('/')[0];
-      if (linkSection === section || (section === '' && linkSection === 'trainings')) {
+      if (linkSection === section || (section === 'testing' && linkSection === 'testings') || (section === '' && linkSection === 'trainings')) {
         link.classList.add('nav__link--active');
       }
     });
@@ -684,13 +699,14 @@ const App = (() => {
   }
 
   function classifyEvent(title, rules) {
-    if (!rules || !rules.length || !title) return 'trénink';
+    if (!title) return 'jine';
+    if (!rules || !rules.length) return 'jine';
     const norm = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const n = norm(title);
     for (const rule of rules) {
-      if (rule.keyword && n.includes(norm(rule.keyword))) return rule.type || 'trénink';
+      if (rule.keyword && n.includes(norm(rule.keyword))) return rule.type || 'jine';
     }
-    return 'trénink';
+    return 'jine';
   }
 
   async function fetchExternalEvents(rawUrl) {

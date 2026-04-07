@@ -1,44 +1,18 @@
 [
-  { "id": "plr-002", "name": "Timon Huvar",         "number": 3,    "nickname": "Timon", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-01", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [7.39, 7.45] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-003", "name": "Milan Macháč",        "number": 5,    "nickname": "Milan", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
-  { "id": "plr-004", "name": "Maxmilián Krejčí",    "number": 7,    "nickname": "Mak",   "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-02", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [6.14, 6.09] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-005", "name": "Libor Zdráhal",       "number": 8,    "nickname": "Libor", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-03", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [5.90, 5.75] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-006", "name": "František Roháček",   "number": 9,    "nickname": "Franta","birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-04", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [6.19, 6.36] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-007", "name": "David Růčka",         "number": 10,   "nickname": "David", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-05", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [6.02, 6.40] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-008", "name": "Robin Sajdl",         "number": 11,   "nickname": "Robin", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-06", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [6.04, 5.76] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-009", "name": "Jonáš Kocián",        "number": 14,   "nickname": "Jony",  "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
-  { "id": "plr-010", "name": "Maxmilián Petráš",    "number": 15,   "nickname": "Max",   "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-07", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [5.80, 6.32] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-011", "name": "Simon Kalich",        "number": 17,   "nickname": "Simon", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-08", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [6.78, 7.12] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-012", "name": "Matěj Blahuš",        "number": 19,   "nickname": "Maty",  "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
-  { "id": "plr-013", "name": "Marie Kubičíková",     "number": 20,   "nickname": "Mája",  "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-09", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [6.76, 6.83] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-014", "name": "Ondřej Bartoš",       "number": 21,   "nickname": "Ondra", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-10", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [6.00, 6.43] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-015", "name": "Andreas Cáb",         "number": 23,   "nickname": "Andy",  "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-11", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [7.15, 7.31] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-016", "name": "Michaela Kubičíková",  "number": 27,   "nickname": "Míša",  "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-12", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [6.40, 6.70] }
-  ], "createdAt": "2026-04-07" },
-  { "id": "plr-017", "name": "David Kudělka",        "number": null, "nickname": "David", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
-    { "id": "tst-0407-13", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [6.50, 7.68] }
-  ], "createdAt": "2026-04-07" }
+  { "id": "plr-002", "name": "Timon Huvar",         "number": 3,    "nickname": "Timon", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-003", "name": "Milan Macháč",         "number": 5,    "nickname": "Milan", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-004", "name": "Maxmilián Krejčí",     "number": 7,    "nickname": "Mak",   "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-005", "name": "Libor Zdráhal",        "number": 8,    "nickname": "Libor", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-006", "name": "František Roháček",    "number": 9,    "nickname": "Franta","birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-007", "name": "David Růčka",          "number": 10,   "nickname": "David", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-008", "name": "Robin Sajdl",          "number": 11,   "nickname": "Robin", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-009", "name": "Jonáš Kocián",         "number": 14,   "nickname": "Jony",  "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-010", "name": "Maxmilián Petráš",     "number": 15,   "nickname": "Max",   "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-011", "name": "Simon Kalich",         "number": 17,   "nickname": "Simon", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-012", "name": "Matěj Blahuš",         "number": 19,   "nickname": "Maty",  "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-013", "name": "Marie Kubičíková",      "number": 20,   "nickname": "Mája",  "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-014", "name": "Ondřej Bartoš",        "number": 21,   "nickname": "Ondra", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-015", "name": "Andreas Cáb",          "number": 23,   "nickname": "Andy",  "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-016", "name": "Michaela Kubičíková",   "number": 27,   "nickname": "Míša",  "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
+  { "id": "plr-017", "name": "David Kudělka",         "number": null, "nickname": "David", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" }
 ]

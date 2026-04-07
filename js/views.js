@@ -7,7 +7,8 @@ const EVENT_TYPES = {
   trénink:     { label: 'Trénink',     color: '#1e40af', icon: '⚽' },
   zapas_doma:  { label: 'Zápas doma',  color: '#16a34a', icon: '🏠' },
   zapas_venku: { label: 'Zápas venku', color: '#ea580c', icon: '🚌' },
-  turnaj:      { label: 'Turnaj',      color: '#9333ea', icon: '🏆' }
+  turnaj:      { label: 'Turnaj',      color: '#9333ea', icon: '🏆' },
+  jine:        { label: 'Jiné',        color: '#6b7280', icon: '📌' }
 };
 
 function eventTypeBadge(type) {
@@ -815,7 +816,6 @@ function renderCalendarPage(trainings, year, month, externalEvents) {
     ${Object.entries(EVENT_TYPES).map(([val, et]) =>
       `<span class="cal-legend-item"><span class="cal-legend-dot" style="background:${escHtml(et.color)}"></span>${escHtml(et.label)}</span>`
     ).join('')}
-    <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#4285f4"></span>Google Kalendář</span>
   </div>`;
 
   const listHtml = allMonthEvents.length === 0
@@ -982,6 +982,101 @@ function renderPlayersPage(players) {
     </article>`).join('');
 
   return header + `<div class="players-grid">${cards}</div>`;
+}
+
+// ─── Testings list page ───────────────────────────────────────────────────────
+
+function renderTestingsPage(testings) {
+  const header = `<div class="page-header">
+    <div>
+      <h1 class="page-title">Testování</h1>
+      <p class="page-subtitle">Výsledky měření a testů hráčů</p>
+    </div>
+  </div>`;
+
+  if (!testings || testings.length === 0) {
+    return header + renderEmpty('Zatím žádné testování.');
+  }
+
+  const sorted = [...testings].sort((a, b) => b.date.localeCompare(a.date));
+
+  const cards = sorted.map(evt => `
+    <a href="#/testing/${escHtml(evt.id)}" class="testing-card">
+      <div class="testing-card__date">${escHtml(evt.date)}</div>
+      <div class="testing-card__name">${escHtml(evt.name)}</div>
+      ${evt.description ? `<div class="testing-card__desc">${escHtml(evt.description)}</div>` : ''}
+      <div class="testing-card__meta">${(evt.tests || []).length} ${(evt.tests || []).length === 1 ? 'test' : 'testy/testů'} · ${(evt.tests || []).reduce((s, t) => s + (t.results || []).length, 0)} hráčů</div>
+    </a>`).join('');
+
+  return header + `<div class="testings-list">${cards}</div>`;
+}
+
+// ─── Testing detail page ──────────────────────────────────────────────────────
+
+function renderTestingDetail(testing, players) {
+  if (!testing) return renderNotFound();
+
+  const playerMap = {};
+  (players || []).forEach(p => { playerMap[p.id] = p; });
+
+  const testsHtml = (testing.tests || []).map(test => {
+    const results = (test.results || []).filter(r => r.values && r.values.length > 0);
+    const maxAttempts = results.reduce((m, r) => Math.max(m, r.values.length), 0);
+
+    // Compute best per player and sort
+    const withBest = results.map(r => {
+      const best = test.lowerIsBetter
+        ? Math.min(...r.values)
+        : Math.max(...r.values);
+      return { ...r, best };
+    });
+    withBest.sort((a, b) => test.lowerIsBetter ? a.best - b.best : b.best - a.best);
+
+    const attemptHeaders = Array.from({ length: maxAttempts }, (_, i) =>
+      `<th>Pokus ${i + 1}</th>`).join('');
+
+    const rows = withBest.map((r, idx) => {
+      const p = playerMap[r.playerId];
+      const playerName = p ? escHtml(p.name) : `(${escHtml(r.playerId)})`;
+      const attemptsHtml = Array.from({ length: maxAttempts }, (_, i) => {
+        const val = r.values[i];
+        if (val == null) return '<td>—</td>';
+        const isBest = val === r.best && r.values.filter(v => v === r.best).length <= 1 || val === r.best;
+        return `<td${isBest ? ' class="testing-best-col"' : ''}>${val}</td>`;
+      }).join('');
+      return `<tr>
+        <td class="testing-rank">${idx + 1}.</td>
+        <td class="testing-name">${playerName}</td>
+        ${attemptsHtml}
+        <td class="testing-best">${r.best} <span class="testing-unit">${escHtml(test.unit)}</span></td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="testing-test-block">
+      <h2 class="testing-test-name">${escHtml(test.testName)} <span class="testing-meta">${escHtml(test.unit)}${test.lowerIsBetter ? ' · nižší = lepší' : ' · vyšší = lepší'}</span></h2>
+      <div class="table-wrap">
+        <table class="testing-results-table">
+          <thead><tr>
+            <th style="width:40px">#</th>
+            <th>Hráč</th>
+            ${attemptHeaders}
+            <th>Nejlepší</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="detail-header">
+    <a href="#/testings" class="btn btn--back">← Zpět</a>
+    <h1 class="page-title">${escHtml(testing.name)}</h1>
+  </div>
+  <div class="testing-header-meta">
+    <span>${escHtml(testing.date)}</span>
+    ${testing.description ? `<span>${escHtml(testing.description)}</span>` : ''}
+  </div>
+  ${testsHtml || renderEmpty('Žádné testy v této události.')}`;
 }
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────

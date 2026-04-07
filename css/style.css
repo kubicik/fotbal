@@ -1583,3 +1583,59 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   font-size: .78rem;
   color: var(--color-text-muted);
 }
+
+/* ─── Testings page ──────────────────────────────────────────────────────── */
+.testings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.testing-card {
+  display: block;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.07);
+  padding: 1rem 1.25rem;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow .15s;
+}
+.testing-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+.testing-card__date { font-size: .8rem; color: var(--color-text-muted); margin-bottom: .2rem; }
+.testing-card__name { font-weight: 700; font-size: 1rem; margin-bottom: .25rem; }
+.testing-card__desc { font-size: .85rem; color: var(--color-text-muted); margin-bottom: .3rem; }
+.testing-card__meta { font-size: .78rem; color: var(--color-primary); font-weight: 500; }
+
+/* ─── Testing detail ─────────────────────────────────────────────────────── */
+.testing-header-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: .85rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.testing-test-block { margin-bottom: 2rem; }
+.testing-test-name { font-size: 1.05rem; font-weight: 700; margin-bottom: .75rem; }
+.testing-meta { font-size: .8rem; color: var(--color-text-muted); font-weight: 400; }
+
+.testing-results-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.testing-results-table th {
+  background: #f1f5f9;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+.testing-results-table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.testing-rank { color: var(--color-text-muted); font-size: .85em; width: 40px; }
+.testing-name { font-weight: 500; }
+.testing-best { font-weight: 700; color: var(--color-primary); white-space: nowrap; }
+.testing-unit { font-weight: 400; font-size: .85em; color: var(--color-text-muted); }
+.testing-best-col { font-weight: 700; color: var(--color-primary); }
