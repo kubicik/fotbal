@@ -1,5 +1,4 @@
 [
-  { "id": "plr-001", "name": "Richard Klein",      "number": 2,    "nickname": "Ríša",  "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [], "createdAt": "2026-04-07" },
   { "id": "plr-002", "name": "Timon Huvar",         "number": 3,    "nickname": "Timon", "birthYear": 2018, "position": "", "dominantFoot": "pravá", "notes": "", "tests": [
     { "id": "tst-0407-01", "date": "2026-04-07", "testName": "Rychlost 30m (pauza 15s)", "unit": "s", "lowerIsBetter": true, "attempts": [7.39, 7.45] }
   ], "createdAt": "2026-04-07" },
