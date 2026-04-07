@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FK Nový Jičín — Aplikace pro trenéra mládeže U8. Správa tréninků a cvičení.">
+  <meta name="theme-color" content="#1a4b8c">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="FK Nový Jičín U8 — Trenérská aplikace">
+  <meta property="og:description" content="Správa tréninků a cvičení pro kategorii U8 (nar. 2018)">
+  <meta property="og:type" content="website">
+
+  <title>FK Nový Jičín U8</title>
+
+  <!-- Google Fonts (Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Favicon (SVG inline) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- ─── Header ─────────────────────────────────────────── -->
+  <header class="site-header" role="banner">
+    <div class="site-header__inner">
+      <a href="#/trainings" class="site-header__brand" aria-label="FK Nový Jičín U8 — Domů">
+        <div class="site-header__logo" aria-hidden="true">⚽</div>
+        <div>
+          <div class="site-header__title">FK Nový Jičín</div>
+          <div class="site-header__subtitle">U8 · Nar. 2018</div>
+        </div>
+      </a>
+
+      <!-- Mobile menu toggle -->
+      <button id="menu-toggle" class="menu-toggle" aria-label="Otevřít navigaci" aria-expanded="false" aria-controls="nav-menu">
+        ☰
+      </button>
+
+      <!-- Edit mode toggle -->
+      <label class="edit-mode-toggle" title="Přepnout editační režim">
+        <span class="toggle-switch">
+          <input type="checkbox" id="edit-mode-toggle" role="switch" aria-label="Režim úprav">
+          <span class="toggle-switch__track"></span>
+          <span class="toggle-switch__thumb"></span>
+        </span>
+        <span id="edit-mode-label">Režim úprav: VYP</span>
+      </label>
+    </div>
+  </header>
+
+  <!-- ─── Navigation ─────────────────────────────────────── -->
+  <nav class="site-nav" id="nav-menu" role="navigation" aria-label="Hlavní navigace">
+    <div class="nav__inner">
+      <a href="#/trainings" class="nav__link" aria-label="Tréninky">
+        <span aria-hidden="true">📅</span> Tréninky
+      </a>
+      <a href="#/exercises" class="nav__link" aria-label="Cvičení">
+        <span aria-hidden="true">🏃</span> Cvičení
+      </a>
+      <a href="#/settings" class="nav__link" aria-label="Nastavení">
+        <span aria-hidden="true">⚙️</span> Nastavení
+      </a>
+    </div>
+  </nav>
+
+  <!-- ─── Main content ───────────────────────────────────── -->
+  <main class="site-main" id="main-content" role="main" aria-live="polite" aria-atomic="false">
+    <!-- Loading indicator shown before JS boots -->
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <span>Načítám...</span>
+    </div>
+  </main>
+
+</div>
+
+<!-- ─── Toast notification ─────────────────────────────── -->
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- ─── Scripts ────────────────────────────────────────── -->
+<script src="js/data.js"></script>
+<script src="js/views.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

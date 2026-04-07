@@ -1,0 +1,143 @@
+[
+  {
+    "id": "tr-001",
+    "date": "2026-04-10",
+    "title": "Trénink zaměřený na dribling a vedení míče",
+    "duration_total": 60,
+    "theme": "Dribling",
+    "location": "Hřiště FK Nový Jičín",
+    "notes": "Nezapomenout na dostatek vody — bude teplo. Hráči by měli přijít 10 minut před začátkem. Asistent Martin připraví kužely.",
+    "exercises": [
+      {
+        "exerciseId": "ex-001",
+        "duration": 8,
+        "order": 1,
+        "notes": "Pomalejší tempo, hlavní je rozhýbat hráče"
+      },
+      {
+        "exerciseId": "ex-002",
+        "duration": 7,
+        "order": 2,
+        "notes": "Varianta bez míče — rozcvičení reakcí"
+      },
+      {
+        "exerciseId": "ex-005",
+        "duration": 12,
+        "order": 3,
+        "notes": "Kužely 1,5 m od sebe, dvě dráhy paralelně pro menší čekání"
+      },
+      {
+        "exerciseId": "ex-007",
+        "duration": 10,
+        "order": 4,
+        "notes": "Oblíbená hra — hráči se vždy těší"
+      },
+      {
+        "exerciseId": "ex-006",
+        "duration": 18,
+        "order": 5,
+        "notes": "Zdůraznit pohyb bez míče a volání spoluhráče"
+      },
+      {
+        "exerciseId": "ex-009",
+        "duration": 5,
+        "order": 6,
+        "notes": "Závěrečné zhodnocení: každý hráč řekne co se mu povedlo"
+      }
+    ],
+    "createdAt": "2026-04-07",
+    "published": true
+  },
+  {
+    "id": "tr-002",
+    "date": "2026-04-14",
+    "title": "Trénink přihrávek a kombinací",
+    "duration_total": 60,
+    "theme": "Přihrávky",
+    "location": "Hřiště FK Nový Jičín",
+    "notes": "Tento trénink je náročnější na koordinaci — buďme trpěliví s hráči. Zaměřit se na komunikaci mezi hráči.",
+    "exercises": [
+      {
+        "exerciseId": "ex-001",
+        "duration": 8,
+        "order": 1,
+        "notes": "Přidat: po zastavení míče otočit se a vést míč opačným směrem"
+      },
+      {
+        "exerciseId": "ex-004",
+        "duration": 12,
+        "order": 2,
+        "notes": "Začít na 5 metrech, postupně zvyšovat vzdálenost na 8-10 m"
+      },
+      {
+        "exerciseId": "ex-008",
+        "duration": 12,
+        "order": 3,
+        "notes": "Trojice mohou pracovat samostatně — trenér obchází a opravuje"
+      },
+      {
+        "exerciseId": "ex-010",
+        "duration": 10,
+        "order": 4,
+        "notes": "Varianta: při štafetě přihrát asistentovi na okraji dráhy a dostat míč zpět"
+      },
+      {
+        "exerciseId": "ex-006",
+        "duration": 13,
+        "order": 5,
+        "notes": "Gól platí pouze po kombinaci (min. 2 přihrávky)"
+      },
+      {
+        "exerciseId": "ex-009",
+        "duration": 5,
+        "order": 6,
+        "notes": ""
+      }
+    ],
+    "createdAt": "2026-04-07",
+    "published": true
+  },
+  {
+    "id": "tr-003",
+    "date": "2026-04-17",
+    "title": "Herní trénink — mini turnaj",
+    "duration_total": 60,
+    "theme": "Hra",
+    "location": "Hřiště FK Nový Jičín",
+    "notes": "Přijdou rodiče — chceme ukázat co děti umí. Připravit čísla dresů. Hráče rozdělit rovnoměrně podle výkonnosti.",
+    "exercises": [
+      {
+        "exerciseId": "ex-002",
+        "duration": 8,
+        "order": 1,
+        "notes": "Varianta s míčem — hráči vedou míč při útěku"
+      },
+      {
+        "exerciseId": "ex-003",
+        "duration": 12,
+        "order": 2,
+        "notes": "Každý hráč min. 5 střel — zaměřit se na přesnost, ne sílu"
+      },
+      {
+        "exerciseId": "ex-007",
+        "duration": 8,
+        "order": 3,
+        "notes": "Oblíbená hra, hráči ji znají — žádné extra instrukce"
+      },
+      {
+        "exerciseId": "ex-006",
+        "duration": 27,
+        "order": 4,
+        "notes": "Mini turnaj 3×3, každý tým hraje každého. Vedeme tabulku na papíře."
+      },
+      {
+        "exerciseId": "ex-009",
+        "duration": 5,
+        "order": 5,
+        "notes": "Předat diplomy / samolepky za aktivitu"
+      }
+    ],
+    "createdAt": "2026-04-07",
+    "published": false
+  }
+]
