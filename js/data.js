@@ -47,7 +47,16 @@ const DataLayer = (() => {
 
   async function init() {
     const initialized = localStorage.getItem(DATA_KEYS.initialized);
-    if (initialized) return;
+    // If already initialized but players key is missing (added later), seed it
+    if (initialized) {
+      if (localStorage.getItem(DATA_KEYS.players) === null) {
+        try {
+          const r = await fetch('./data/players.json');
+          saveToStorage(DATA_KEYS.players, r.ok ? await r.json() : []);
+        } catch(e) { saveToStorage(DATA_KEYS.players, []); }
+      }
+      return;
+    }
 
     console.log('First run — loading data from repository JSON files...');
     try {

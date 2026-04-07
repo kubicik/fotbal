@@ -90,7 +90,7 @@ function navigateSection(section) {
     l.classList.toggle('sidebar__link--active', l.dataset.section === section);
   });
 
-  const titles = { trainings: 'Tréninky', exercises: 'Cvičení', categories: 'Kategorie', users: 'Uživatelé', 'players-admin': 'Soupiska', concept: 'Koncepce', appsettings: 'Nastavení', export: 'Export / Import' };
+  const titles = { trainings: 'Tréninky', exercises: 'Cvičení', categories: 'Kategorie', users: 'Uživatelé', 'players-admin': 'Soupiska', concept: 'Koncepce', appsettings: 'Nastavení' };
   document.getElementById('admin-page-title').textContent = titles[section] || '';
 
   const actionsEl = document.getElementById('admin-header-actions');
@@ -104,7 +104,6 @@ function navigateSection(section) {
     case 'players-admin': renderPlayersAdminSection();  break;
     case 'concept':       renderConceptSection();       break;
     case 'appsettings':   renderAppSettingsSection();   break;
-    case 'export':        renderExportSection();        break;
   }
 }
 
@@ -1324,6 +1323,7 @@ function renderAppSettingsSection() {
 
       <div class="modal-actions">
         <button type="submit" class="btn btn--primary">💾 Uložit nastavení</button>
+        <button type="button" class="btn btn--outline" id="btn-reload-repo">🔄 Načíst data z webu</button>
       </div>
     </form>`;
 
@@ -1374,98 +1374,20 @@ function renderAppSettingsSection() {
     });
     showToast('Nastavení uloženo!');
   });
-}
-
-// ─── EXPORT / IMPORT SECTION ──────────────────────────────────────────────────
-
-function renderExportSection() {
-  document.getElementById('admin-header-actions').innerHTML = '';
-  document.getElementById('admin-content').innerHTML = `
-    <div class="export-section">
-      <div class="export-card">
-        <h2>📦 Exportovat data</h2>
-        <p>Stáhne všechna data (cvičení, tréninky, kategorie, uživatelé) jako JSON soubory. Umístěte je do složky <code>data/</code> v repozitáři a commitněte — tím provedete nový release.</p>
-        <button class="btn btn--primary" id="btn-export">Stáhnout JSON soubory</button>
-        <div id="export-status" class="status-msg" style="display:none"></div>
-      </div>
-
-      <div class="export-card">
-        <h2>📥 Importovat data</h2>
-        <p>Nahrajte JSON soubory pro přepsání lokálních dat (například po stažení z repozitáře).</p>
-        <div class="import-grid">
-          <label class="form-label">exercises.json<input type="file" id="imp-ex"   class="input" accept=".json"></label>
-          <label class="form-label">trainings.json<input type="file" id="imp-tr"   class="input" accept=".json"></label>
-          <label class="form-label">categories.json<input type="file" id="imp-cat" class="input" accept=".json"></label>
-          <label class="form-label">users.json<input type="file" id="imp-usr"      class="input" accept=".json"></label>
-        </div>
-        <button class="btn btn--primary" id="btn-import">Importovat</button>
-        <div id="import-status" class="status-msg" style="display:none"></div>
-      </div>
-
-      <div class="export-card export-card--warn">
-        <h2>🔄 Načíst z repozitáře</h2>
-        <p>Přepíše lokální data daty z veřejného webu (data/*.json). Použijte po novém deployi.</p>
-        <button class="btn btn--outline" id="btn-reload-repo">Načíst z webu</button>
-      </div>
-
-      <div class="export-card export-card--danger">
-        <h2>🗑️ Smazat lokální data</h2>
-        <p>Vymaže vše z localStorage. Data z repozitáře budou znovu načtena při dalším načtení stránky.</p>
-        <button class="btn btn--danger" id="btn-clear">Smazat lokální data</button>
-      </div>
-    </div>`;
-
-  document.getElementById('btn-export').addEventListener('click', () => {
-    DataLayer.exportData();
-    const s = document.getElementById('export-status');
-    s.textContent = 'Soubory se stahují. Uložte je do data/ v repozitáři a commitněte.';
-    s.className = 'status-msg status-msg--success';
-    s.style.display = '';
-  });
-
-  document.getElementById('btn-import').addEventListener('click', async () => {
-    const readJSON = file => new Promise((res, rej) => {
-      if (!file) { res(null); return; }
-      const r = new FileReader();
-      r.onload = e => { try { res(JSON.parse(e.target.result)); } catch(err) { rej(err); } };
-      r.readAsText(file);
-    });
-    try {
-      const ex  = await readJSON(document.getElementById('imp-ex')?.files[0]);
-      const tr  = await readJSON(document.getElementById('imp-tr')?.files[0]);
-      const cat = await readJSON(document.getElementById('imp-cat')?.files[0]);
-      const usr = await readJSON(document.getElementById('imp-usr')?.files[0]);
-      if (ex)  localStorage.setItem('fnj_exercises',  JSON.stringify(ex));
-      if (tr)  localStorage.setItem('fnj_trainings',  JSON.stringify(tr));
-      if (cat) localStorage.setItem('fnj_categories', JSON.stringify(cat));
-      if (usr) localStorage.setItem('fnj_users',      JSON.stringify(usr));
-      const s = document.getElementById('import-status');
-      s.textContent = 'Import dokončen!';
-      s.className = 'status-msg status-msg--success';
-      s.style.display = '';
-      showToast('Data importována!');
-    } catch(err) {
-      showToast('Chyba importu: ' + err.message, 'error');
-    }
-  });
 
   document.getElementById('btn-reload-repo').addEventListener('click', async () => {
-    if (!confirm('Přepsat lokální data daty z webu?')) return;
+    if (!confirm('Načíst všechna data znovu z webu? Přepíše lokální změny.')) return;
     try {
       await DataLayer.reloadFromRepo();
-      showToast('Data načtena z repozitáře.');
+      showToast('Data načtena z webu.');
     } catch(e) {
       showToast('Chyba: ' + e.message, 'error');
     }
   });
-
-  document.getElementById('btn-clear').addEventListener('click', () => {
-    if (!confirm('Opravdu smazat všechna lokální data?')) return;
-    localStorage.clear();
-    showToast('Data smazána. Obnovte stránku.');
-    setTimeout(() => window.location.reload(), 1500);
-  });
 }
+
+// ─── EXPORT / IMPORT SECTION ──────────────────────────────────────────────────
+
 
 // ─── PLAYERS SECTION ─────────────────────────────────────────────────────────
 
