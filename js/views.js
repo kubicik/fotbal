@@ -745,6 +745,17 @@ function renderConceptPage(concept) {
   ${concept.updatedAt ? `<p class="concept-updated">Aktualizováno: ${escHtml(concept.updatedAt)}</p>` : ''}`;
 }
 
+function resolveLocation(location, aliases) {
+  if (!location) return '';
+  if (!aliases || !aliases.length) return location;
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const n = norm(location);
+  for (const a of aliases) {
+    if (a.keyword && n.includes(norm(a.keyword))) return a.name;
+  }
+  return location;
+}
+
 // ─── Calendar page ────────────────────────────────────────────────────────────
 
 function renderCalendarPage(trainings, year, month, externalEvents) {
@@ -790,9 +801,11 @@ function renderCalendarPage(trainings, year, month, externalEvents) {
     const dateStr  = `${y}-${String(m + 1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
     const isToday  = dateStr === now.toISOString().split('T')[0];
     const dayTrainings = byDate[dateStr] || [];
+    const _aliases = (typeof DataLayer !== 'undefined') ? (DataLayer.getSettings().locationAliases || []) : [];
     const dots = dayTrainings.map(t => {
       const et = EVENT_TYPES[t.eventType] || EVENT_TYPES['jine'];
-      const inner = `<span class="cal-event__type">${et.icon} ${escHtml(et.label)}</span>${t.location ? `<span class="cal-event__loc">${escHtml(t.location)}</span>` : ''}`;
+      const loc = resolveLocation(t.location, _aliases);
+      const inner = `<span class="cal-event__type">${et.icon} ${escHtml(et.label)}</span>${loc ? `<span class="cal-event__loc">${escHtml(loc)}</span>` : ''}`;
       if (t.external) {
         return `<span class="cal-event" style="background:${escHtml(et.color)}" title="${escHtml(t.title)}">${inner}</span>`;
       }

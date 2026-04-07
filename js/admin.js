@@ -1323,6 +1323,13 @@ function renderAppSettingsSection() {
         <button type="button" class="btn btn--outline btn--sm" id="btn-add-rule">+ Přidat pravidlo</button>
       </div>
 
+      <div class="export-card" style="margin-bottom:1.5rem">
+        <h2>📍 Zkratky míst (kalendář)</h2>
+        <p>Pokud místo události obsahuje klíčové slovo, zobrazí se místo toho zkrácený název.</p>
+        <div id="aliases-list" class="rules-list"></div>
+        <button type="button" class="btn btn--outline btn--sm" id="btn-add-alias">+ Přidat zkratku</button>
+      </div>
+
       <div class="modal-actions">
         <button type="submit" class="btn btn--primary">💾 Uložit nastavení</button>
         <button type="button" class="btn btn--outline" id="btn-reload-repo">🔄 Načíst data z webu</button>
@@ -1360,6 +1367,26 @@ function renderAppSettingsSection() {
     rulesList.appendChild(renderRuleRow({ keyword: '', type: 'trénink' }));
   });
 
+  function renderAliasRow(alias) {
+    const div = document.createElement('div');
+    div.className = 'rule-row';
+    div.innerHTML = `
+      <span class="rule-row__if">Pokud místo obsahuje</span>
+      <input type="text" class="input input--sm alias-keyword" value="${esc(alias.keyword || '')}" placeholder="např. Tyršova">
+      <span class="rule-row__then">→</span>
+      <input type="text" class="input input--sm alias-name" value="${esc(alias.name || '')}" placeholder="zkrácený název">
+      <button type="button" class="btn btn--sm btn--danger btn--icon-only alias-remove" title="Odebrat">✕</button>`;
+    div.querySelector('.alias-remove').addEventListener('click', () => div.remove());
+    return div;
+  }
+
+  const aliasesList = document.getElementById('aliases-list');
+  (s.locationAliases || []).forEach(a => aliasesList.appendChild(renderAliasRow(a)));
+
+  document.getElementById('btn-add-alias').addEventListener('click', () => {
+    aliasesList.appendChild(renderAliasRow({ keyword: '', name: '' }));
+  });
+
   document.getElementById('settings-form').addEventListener('submit', e => {
     e.preventDefault();
     const rules = [...rulesList.querySelectorAll('.rule-row')].map(row => ({
@@ -1367,13 +1394,19 @@ function renderAppSettingsSection() {
       type:    row.querySelector('.rule-type').value
     })).filter(r => r.keyword);
 
+    const aliases = [...aliasesList.querySelectorAll('.rule-row')].map(row => ({
+      keyword: row.querySelector('.alias-keyword').value.trim(),
+      name:    row.querySelector('.alias-name').value.trim()
+    })).filter(a => a.keyword && a.name);
+
     DataLayer.saveSettings({
       teamName:              document.getElementById('sf-team').value.trim(),
       ageGroup:              document.getElementById('sf-age').value.trim(),
       season:                document.getElementById('sf-season').value.trim(),
       icalUrl:               document.getElementById('sf-ical').value.trim(),
       calendarTitle:         document.getElementById('sf-caltitle').value.trim(),
-      classificationRules:   rules
+      classificationRules:   rules,
+      locationAliases:       aliases
     });
     showToast('Nastavení uloženo!');
   });
