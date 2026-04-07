@@ -791,12 +791,12 @@ function renderCalendarPage(trainings, year, month, externalEvents) {
     const isToday  = dateStr === now.toISOString().split('T')[0];
     const dayTrainings = byDate[dateStr] || [];
     const dots = dayTrainings.map(t => {
-      const et = EVENT_TYPES[t.eventType] || EVENT_TYPES['trénink'];
-      const label = t.location ? `${et.icon} ${escHtml(t.title)} · ${escHtml(t.location)}` : `${et.icon} ${escHtml(t.title)}`;
+      const et = EVENT_TYPES[t.eventType] || EVENT_TYPES['jine'];
+      const inner = `<span class="cal-event__type">${et.icon} ${escHtml(et.label)}</span>${t.location ? `<span class="cal-event__loc">${escHtml(t.location)}</span>` : ''}`;
       if (t.external) {
-        return `<span class="cal-event" style="background:${escHtml(et.color)};opacity:.85" title="${escHtml(t.title)}">${label}</span>`;
+        return `<span class="cal-event" style="background:${escHtml(et.color)}" title="${escHtml(t.title)}">${inner}</span>`;
       }
-      return `<a href="#/training/${escHtml(t.id)}" class="cal-event" style="background:${escHtml(et.color)}" title="${escHtml(t.title)}">${label}</a>`;
+      return `<a href="#/training/${escHtml(t.id)}" class="cal-event" style="background:${escHtml(et.color)}" title="${escHtml(t.title)}">${inner}</a>`;
     }).join('');
     cells += `<div class="cal-cell ${isToday ? 'cal-cell--today' : ''} ${dayTrainings.length ? 'cal-cell--has-event' : ''}">
       <span class="cal-cell__day">${dayNum}</span>
