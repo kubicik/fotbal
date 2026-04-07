@@ -1530,3 +1530,56 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   border-radius: 3px;
   flex-shrink: 0;
 }
+
+/* ─── Markdown output styles ─────────────────────────────────────────────── */
+.exercise-description p, .training-notes p { margin: 0 0 .4em; }
+.exercise-description ul, .exercise-description ol,
+.training-notes ul, .training-notes ol { padding-left: 1.4em; margin: .3em 0; }
+.exercise-description hr, .training-notes hr { border: none; border-top: 1px solid var(--color-border); margin: .6em 0; }
+.exercise-description strong, .training-notes strong { font-weight: 700; }
+
+/* ─── Players page ───────────────────────────────────────────────────────── */
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.player-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.07);
+  padding: 1.25rem 1rem;
+  text-align: center;
+}
+
+.player-card__number {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto .75rem;
+}
+
+.player-card__name {
+  font-weight: 700;
+  font-size: .95rem;
+  margin-bottom: .2rem;
+}
+
+.player-card__position {
+  font-size: .8rem;
+  color: var(--color-text-muted);
+}
+
+.player-card__foot {
+  font-size: .75rem;
+  color: var(--color-text-muted);
+  margin-top: .15rem;
+}

@@ -8,6 +8,7 @@ const DATA_KEYS = {
   trainings:   'fnj_trainings',
   categories:  'fnj_categories',
   users:       'fnj_users',
+  players:     'fnj_players',
   concept:     'fnj_concept',
   settings:    'fnj_settings',
   editMode:    'fnj_editmode',
@@ -50,11 +51,12 @@ const DataLayer = (() => {
 
     console.log('First run — loading data from repository JSON files...');
     try {
-      const [exRes, trRes, catRes, usrRes, conRes, setRes] = await Promise.all([
+      const [exRes, trRes, catRes, usrRes, plrRes, conRes, setRes] = await Promise.all([
         fetch('./data/exercises.json'),
         fetch('./data/trainings.json'),
         fetch('./data/categories.json'),
         fetch('./data/users.json'),
+        fetch('./data/players.json'),
         fetch('./data/concept.json'),
         fetch('./data/settings.json')
       ]);
@@ -63,6 +65,7 @@ const DataLayer = (() => {
       saveToStorage(DATA_KEYS.trainings,  trRes.ok  ? await trRes.json()  : []);
       saveToStorage(DATA_KEYS.categories, catRes.ok ? await catRes.json() : _defaultCategories());
       saveToStorage(DATA_KEYS.users,      usrRes.ok ? await usrRes.json() : []);
+      saveToStorage(DATA_KEYS.players,    plrRes.ok ? await plrRes.json() : []);
       if (conRes.ok) saveToStorage(DATA_KEYS.concept,  await conRes.json());
       if (setRes.ok) saveToStorage(DATA_KEYS.settings, await setRes.json());
 
@@ -72,6 +75,7 @@ const DataLayer = (() => {
       saveToStorage(DATA_KEYS.trainings,  []);
       saveToStorage(DATA_KEYS.categories, _defaultCategories());
       saveToStorage(DATA_KEYS.users,      []);
+      saveToStorage(DATA_KEYS.players,    []);
       localStorage.setItem(DATA_KEYS.initialized, '1');
       console.warn('Fetch error — starting with default data.', e);
     }
@@ -146,6 +150,53 @@ const DataLayer = (() => {
 
   function deleteUser(id) {
     saveToStorage(DATA_KEYS.users, getUsers().filter(u => u.id !== id));
+  }
+
+  // ─── Players ─────────────────────────────────────────────────────────────
+
+  function getPlayers() {
+    return getFromStorage(DATA_KEYS.players) || [];
+  }
+
+  function getPlayerById(id) {
+    return getPlayers().find(p => p.id === id) || null;
+  }
+
+  function savePlayer(player) {
+    const players = getPlayers();
+    if (!player.id) {
+      player.id = generateId('plr');
+      player.createdAt = new Date().toISOString().split('T')[0];
+      players.push(player);
+    } else {
+      const idx = players.findIndex(p => p.id === player.id);
+      if (idx >= 0) players[idx] = player;
+      else players.push(player);
+    }
+    saveToStorage(DATA_KEYS.players, players);
+    return player;
+  }
+
+  function deletePlayer(id) {
+    saveToStorage(DATA_KEYS.players, getPlayers().filter(p => p.id !== id));
+  }
+
+  function addPlayerTest(playerId, test) {
+    test.id = generateId('tst');
+    const players = getPlayers();
+    const p = players.find(p => p.id === playerId);
+    if (!p) return;
+    if (!p.tests) p.tests = [];
+    p.tests.push(test);
+    saveToStorage(DATA_KEYS.players, players);
+  }
+
+  function deletePlayerTest(playerId, testId) {
+    const players = getPlayers();
+    const p = players.find(p => p.id === playerId);
+    if (!p) return;
+    p.tests = (p.tests || []).filter(t => t.id !== testId);
+    saveToStorage(DATA_KEYS.players, players);
   }
 
   // ─── Exercises ───────────────────────────────────────────────────────────
@@ -260,8 +311,9 @@ const DataLayer = (() => {
     setTimeout(() => _downloadJSON(getTrainings(),  'trainings.json'), 300);
     setTimeout(() => _downloadJSON(getCategories(), 'categories.json'), 600);
     setTimeout(() => _downloadJSON(getUsers(),      'users.json'),      900);
-    const concept  = getConcept();  if (concept)  setTimeout(() => _downloadJSON(concept,          'concept.json'),  1200);
-    const settings = getSettings(); if (settings) setTimeout(() => _downloadJSON(settings,         'settings.json'), 1500);
+    setTimeout(() => _downloadJSON(getPlayers(),    'players.json'),    1100);
+    const concept  = getConcept();  if (concept)  setTimeout(() => _downloadJSON(concept,          'concept.json'),  1400);
+    const settings = getSettings(); if (settings) setTimeout(() => _downloadJSON(settings,         'settings.json'), 1700);
   }
 
   function _downloadJSON(data, filename) {
@@ -315,11 +367,12 @@ const DataLayer = (() => {
 
   async function reloadFromRepo() {
     const ts = Date.now();
-    const [exRes, trRes, catRes, usrRes, conRes, setRes] = await Promise.all([
+    const [exRes, trRes, catRes, usrRes, plrRes, conRes, setRes] = await Promise.all([
       fetch('./data/exercises.json?'  + ts),
       fetch('./data/trainings.json?'  + ts),
       fetch('./data/categories.json?' + ts),
       fetch('./data/users.json?'      + ts),
+      fetch('./data/players.json?'    + ts),
       fetch('./data/concept.json?'    + ts),
       fetch('./data/settings.json?'   + ts)
     ]);
@@ -330,6 +383,7 @@ const DataLayer = (() => {
     const trainings  = await trRes.json();
     const categories = catRes.ok ? await catRes.json() : _defaultCategories();
     const users      = usrRes.ok ? await usrRes.json() : [];
+    const players    = plrRes.ok ? await plrRes.json() : [];
     const concept    = conRes.ok ? await conRes.json() : null;
     const settings   = setRes.ok ? await setRes.json() : {};
 
@@ -337,6 +391,7 @@ const DataLayer = (() => {
     saveToStorage(DATA_KEYS.trainings,  trainings);
     saveToStorage(DATA_KEYS.categories, categories);
     saveToStorage(DATA_KEYS.users,      users);
+    saveToStorage(DATA_KEYS.players,    players);
     if (concept)  saveToStorage(DATA_KEYS.concept,  concept);
     if (settings) saveToStorage(DATA_KEYS.settings, settings);
     return { exercises: exercises.length, trainings: trainings.length };
@@ -350,6 +405,7 @@ const DataLayer = (() => {
     getTrainings, getTrainingById, saveTraining, deleteTraining,
     getCategories, getCategoryBySlug, saveCategory, deleteCategory,
     getUsers, getUserById, saveUser, deleteUser,
+    getPlayers, getPlayerById, savePlayer, deletePlayer, addPlayerTest, deletePlayerTest,
     getConcept, saveConcept,
     getSettings, saveSettings,
     isEditMode, setEditMode,

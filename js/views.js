@@ -27,6 +27,34 @@ const CATEGORY_ORDER = ['rozcvičení', 'technika', 'hra', 'kondice', 'závěr']
 
 // ─── Utility helpers ──────────────────────────────────────────────────────────
 
+function renderMarkdown(text) {
+  if (!text) return '';
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const inline = s => esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  const lines = text.split('\n');
+  const out = []; let inUl = false, inOl = false;
+  for (const line of lines) {
+    const t = line.trim();
+    if (/^- /.test(t)) {
+      if (inOl) { out.push('</ol>'); inOl = false; } if (!inUl) { out.push('<ul>'); inUl = true; }
+      out.push(`<li>${inline(t.slice(2))}</li>`);
+    } else if (/^\d+\. /.test(t)) {
+      if (inUl) { out.push('</ul>'); inUl = false; } if (!inOl) { out.push('<ol>'); inOl = true; }
+      out.push(`<li>${inline(t.replace(/^\d+\. /, ''))}</li>`);
+    } else if (/^---/.test(t)) {
+      if (inUl) { out.push('</ul>'); inUl = false; } if (inOl) { out.push('</ol>'); inOl = false; }
+      out.push('<hr>');
+    } else {
+      if (inUl) { out.push('</ul>'); inUl = false; } if (inOl) { out.push('</ol>'); inOl = false; }
+      out.push(t === '' ? '' : `<p>${inline(t)}</p>`);
+    }
+  }
+  if (inUl) out.push('</ul>'); if (inOl) out.push('</ol>');
+  return out.join('');
+}
+
 function escHtml(str) {
   if (str == null) return '';
   return String(str)
@@ -165,7 +193,7 @@ function renderTrainingDetail(training, exercises, editMode) {
       : '';
 
     const itemNotesHtml = item.notes
-      ? `<div class="training-ex__item-notes"><strong>Poznámka pro tento trénink:</strong> ${escHtml(item.notes)}</div>`
+      ? `<div class="training-ex__item-notes"><strong>Poznámka pro tento trénink:</strong> ${renderMarkdown(item.notes)}</div>`
       : '';
 
     const equipmentHtml = (ex.equipment && ex.equipment.length)
@@ -185,7 +213,7 @@ function renderTrainingDetail(training, exercises, editMode) {
       </div>
       ${imageHtml ? `<div class="training-ex__img-wrap">${imageHtml}</div>` : ''}
       <div class="training-ex__body">
-        <p class="training-ex__description">${escHtml(ex.description)}</p>
+        <div class="training-ex__description">${renderMarkdown(ex.description)}</div>
         ${equipmentHtml}
         ${itemNotesHtml}
         ${videoHtml}
@@ -232,9 +260,9 @@ function renderTrainingDetail(training, exercises, editMode) {
           <dd>${sortedExercises.length}</dd>
         </div>
       </dl>
-      ${training.notes ? `<div class="detail-page__notes">
+      ${training.notes ? `<div class="detail-page__notes training-notes">
         <strong>Poznámky pro asistenty:</strong>
-        <p>${escHtml(training.notes)}</p>
+        <div>${renderMarkdown(training.notes)}</div>
       </div>` : ''}
     </header>
 
@@ -393,7 +421,7 @@ function renderExerciseDetail(exercise, editMode) {
 
     <section class="detail-section">
       <h2 class="section-title">Popis cvičení</h2>
-      <p class="detail-description">${escHtml(exercise.description)}</p>
+      <div class="detail-description exercise-description">${renderMarkdown(exercise.description)}</div>
     </section>
 
     ${videoHtml}
@@ -924,6 +952,37 @@ function renderSettings() {
   </div>
 
   <div id="settings-status" class="settings-status" style="display:none" role="alert"></div>`;
+}
+
+// ─── Players page ─────────────────────────────────────────────────────────────
+
+function renderPlayersPage(players) {
+  const settings = (typeof DataLayer !== 'undefined') ? DataLayer.getSettings() : {};
+  const ageGroup = settings.ageGroup || 'U8';
+  const teamName = settings.teamName || 'FK Nový Jičín';
+
+  const header = `<div class="page-header">
+    <div>
+      <h1 class="page-title">Soupiska</h1>
+      <p class="page-subtitle">${escHtml(teamName)} ${escHtml(ageGroup)}</p>
+    </div>
+  </div>`;
+
+  if (!players || players.length === 0) {
+    return header + renderEmpty('Soupiska je zatím prázdná.');
+  }
+
+  const sorted = [...players].sort((a, b) => (a.number || 99) - (b.number || 99));
+
+  const cards = sorted.map(p => `
+    <article class="player-card">
+      <div class="player-card__number">${escHtml(String(p.number || '—'))}</div>
+      <div class="player-card__name">${escHtml(p.name)}</div>
+      ${p.position ? `<div class="player-card__position">${escHtml(p.position)}</div>` : ''}
+      ${p.dominantFoot ? `<div class="player-card__foot">nožička: ${escHtml(p.dominantFoot)}</div>` : ''}
+    </article>`).join('');
+
+  return header + `<div class="players-grid">${cards}</div>`;
 }
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────

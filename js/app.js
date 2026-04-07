@@ -129,6 +129,11 @@ const App = (() => {
         break;
       }
 
+      case 'players':
+        html = renderPlayersPage(DataLayer.getPlayers());
+        document.title = 'Soupiska — FK Nový Jičín U8';
+        break;
+
       case 'settings':
         html = renderSettingsRedirect();
         document.title = 'Nastavení — FK Nový Jičín U8';

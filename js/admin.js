@@ -90,19 +90,21 @@ function navigateSection(section) {
     l.classList.toggle('sidebar__link--active', l.dataset.section === section);
   });
 
-  const titles = { exercises: 'Cvičení', categories: 'Kategorie', users: 'Uživatelé', concept: 'Koncepce', appsettings: 'Nastavení', export: 'Export / Import' };
+  const titles = { trainings: 'Tréninky', exercises: 'Cvičení', categories: 'Kategorie', users: 'Uživatelé', 'players-admin': 'Soupiska', concept: 'Koncepce', appsettings: 'Nastavení', export: 'Export / Import' };
   document.getElementById('admin-page-title').textContent = titles[section] || '';
 
   const actionsEl = document.getElementById('admin-header-actions');
   actionsEl.innerHTML = '';
 
   switch (section) {
-    case 'exercises':   renderExercisesSection();   break;
-    case 'categories':  renderCategoriesSection();   break;
-    case 'users':       renderUsersSection();         break;
-    case 'concept':     renderConceptSection();       break;
-    case 'appsettings': renderAppSettingsSection();   break;
-    case 'export':      renderExportSection();        break;
+    case 'trainings':     renderTrainingsSection();     break;
+    case 'exercises':     renderExercisesSection();     break;
+    case 'categories':    renderCategoriesSection();    break;
+    case 'users':         renderUsersSection();         break;
+    case 'players-admin': renderPlayersAdminSection();  break;
+    case 'concept':       renderConceptSection();       break;
+    case 'appsettings':   renderAppSettingsSection();   break;
+    case 'export':        renderExportSection();        break;
   }
 }
 
@@ -138,6 +140,417 @@ function catBadge(slug) {
   const cat = DataLayer.getCategories().find(c => c.slug === slug);
   if (!cat) return `<span class="badge">${esc(slug)}</span>`;
   return `<span class="badge" style="background:${esc(cat.color)};color:#fff;">${esc(cat.name)}</span>`;
+}
+
+// ─── TRAININGS SECTION ───────────────────────────────────────────────────────
+
+function renderTrainingsSection() {
+  const actionsEl = document.getElementById('admin-header-actions');
+  actionsEl.innerHTML = `<button class="btn btn--primary" id="btn-new-training">+ Nový trénink</button>`;
+  document.getElementById('btn-new-training').addEventListener('click', () => openTrainingComposer(null));
+
+  const trainings = DataLayer.getTrainings().sort((a, b) => b.date.localeCompare(a.date));
+
+  const html = trainings.length === 0
+    ? `<div class="empty-state"><p>Žádné tréninky. Vytvořte první.</p></div>`
+    : `<div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Datum</th><th>Typ</th><th>Název</th><th>Místo</th><th>Délka</th><th>Cvičení</th><th style="width:140px"></th>
+          </tr></thead>
+          <tbody>
+            ${trainings.map(t => {
+              const et = EVENT_TYPES[t.eventType] || EVENT_TYPES['trénink'];
+              return `<tr>
+                <td>${esc(t.date)}</td>
+                <td><span class="badge" style="background:${esc(et.color)};color:#fff;">${et.icon} ${esc(et.label)}</span></td>
+                <td class="td-name">${esc(t.title)}</td>
+                <td>${esc(t.location || '—')}</td>
+                <td>${esc(String(t.duration_total || 0))} min</td>
+                <td>${(t.exercises || []).length}</td>
+                <td class="td-actions">
+                  <button class="btn btn--sm btn--outline" data-action="edit-tr" data-id="${esc(t.id)}">Upravit</button>
+                  <button class="btn btn--sm btn--danger"  data-action="del-tr"  data-id="${esc(t.id)}">Smazat</button>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+  document.getElementById('admin-content').innerHTML = html;
+
+  document.getElementById('admin-content').addEventListener('click', e => {
+    if (e.target.dataset.action === 'edit-tr') openTrainingComposer(DataLayer.getTrainingById(e.target.dataset.id));
+    if (e.target.dataset.action === 'del-tr') {
+      const t = DataLayer.getTrainingById(e.target.dataset.id);
+      if (t && confirm(`Smazat trénink "${t.title}"?`)) {
+        DataLayer.deleteTraining(e.target.dataset.id);
+        showToast('Trénink smazán.');
+        renderTrainingsSection();
+      }
+    }
+  });
+}
+
+const EVENT_TYPES = {
+  trénink:     { label: 'Trénink',     color: '#1e40af', icon: '⚽' },
+  zapas_doma:  { label: 'Zápas doma',  color: '#16a34a', icon: '🏠' },
+  zapas_venku: { label: 'Zápas venku', color: '#ea580c', icon: '🚌' },
+  turnaj:      { label: 'Turnaj',      color: '#9333ea', icon: '🏆' }
+};
+
+// Phase category mapping for pre-populating composer
+const PHASE_CATS = {
+  1: ['rozcvičení'],
+  2: ['technika', 'kombinace'],
+  3: ['hra', 'rozehrávka', 'kondice'],
+  4: ['závěr', 'zápas']
+};
+
+function categoryToPhase(slug) {
+  for (const [phase, cats] of Object.entries(PHASE_CATS)) {
+    if (cats.some(c => slug && slug.includes(c))) return parseInt(phase);
+  }
+  return 2;
+}
+
+function buildComposerHTML(training) {
+  const t = training || {
+    date: new Date().toISOString().split('T')[0],
+    title: '', eventType: 'trénink', theme: '', location: 'Hřiště FK Nový Jičín',
+    duration_total: 60, notes: '', exercises: [], published: false
+  };
+  const isNew = !training;
+
+  const eventTypeOpts = Object.entries(EVENT_TYPES).map(([val, et]) =>
+    `<option value="${esc(val)}" ${(t.eventType || 'trénink') === val ? 'selected' : ''}>${et.icon} ${esc(et.label)}</option>`
+  ).join('');
+
+  // Pre-populate phases from existing exercises
+  const phases = { 1: [], 2: [], 3: [], 4: [] };
+  const exMap = {};
+  DataLayer.getExercises().forEach(e => { exMap[e.id] = e; });
+
+  [...(t.exercises || [])].sort((a, b) => a.order - b.order).forEach(item => {
+    const ex = exMap[item.exerciseId];
+    const phase = ex ? categoryToPhase(ex.category) : 2;
+    phases[phase].push(item);
+  });
+
+  const phaseNames = ['', '🟢 Rozcvičení', '🔵 Technika / Kombinace', '🟠 Hra / Rozehrávka', '🔴 Závěr / Zápas'];
+  const phaseSugg  = ['', 15, 35, 35, 15];
+
+  const phasesHtml = [1, 2, 3, 4].map(ph => {
+    const items = phases[ph].map(item => {
+      const ex = exMap[item.exerciseId];
+      if (!ex) return '';
+      return `<li class="comp-ex-item" data-exercise-id="${esc(ex.id)}">
+        <span class="comp-ex-item__handle" title="Přesunout">⠿</span>
+        ${catBadge(ex.category)}
+        <span class="comp-ex-item__name">${esc(ex.name)}</span>
+        <span class="comp-ex-item__dur">
+          <input type="number" class="input input--sm comp-dur" min="1" max="120" value="${esc(String(item.duration || ex.duration_default))}" data-role="comp-duration">
+          min
+        </span>
+        <input type="text" class="input input--sm comp-ex-item__notes" placeholder="Poznámka..." value="${esc(item.notes || '')}">
+        <button type="button" class="btn btn--sm btn--icon-only" data-action="comp-move-up" title="Nahoru">▲</button>
+        <button type="button" class="btn btn--sm btn--icon-only" data-action="comp-move-down" title="Dolů">▼</button>
+        <button type="button" class="btn btn--sm btn--danger btn--icon-only" data-action="comp-remove">✕</button>
+      </li>`;
+    }).join('');
+
+    return `<details class="comp-phase" open data-phase="${ph}">
+      <summary>
+        ${esc(phaseNames[ph])}
+        <span class="comp-phase-time" data-phase-time="${ph}">0 min</span>
+        <span class="comp-phase-sugg">(doporuč. ~${phaseSugg[ph]}% z celku)</span>
+      </summary>
+      <div class="comp-phase-body">
+        <ol class="comp-phase-list" data-phase="${ph}">${items}</ol>
+        <button type="button" class="btn btn--outline btn--sm comp-pick-btn" data-action="pick-for-phase" data-phase="${ph}">+ Přidat cvičení</button>
+      </div>
+    </details>`;
+  }).join('');
+
+  return `<div class="comp-topbar">
+    <button type="button" class="btn btn--outline" id="comp-back">← Zpět</button>
+    <h2 class="comp-topbar__title">${isNew ? 'Nový trénink' : 'Upravit trénink'}</h2>
+    <button type="button" class="btn btn--primary" id="comp-save">💾 Uložit</button>
+  </div>
+
+  <input type="hidden" id="comp-id" value="${esc(t.id || '')}">
+
+  <div class="comp-header-form">
+    <div class="form-field">
+      <label class="form-label">Datum <span class="req">*</span></label>
+      <input type="date" id="comp-date" class="input" value="${esc(t.date)}" required>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Typ události</label>
+      <select id="comp-eventtype" class="input">${eventTypeOpts}</select>
+    </div>
+    <div class="form-field" style="grid-column:span 2">
+      <label class="form-label">Název <span class="req">*</span></label>
+      <input type="text" id="comp-title" class="input" value="${esc(t.title)}" required placeholder="např. Trénink zaměřený na dribling">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Téma</label>
+      <input type="text" id="comp-theme" class="input" value="${esc(t.theme || '')}" placeholder="např. Dribling">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Místo</label>
+      <input type="text" id="comp-location" class="input" value="${esc(t.location || '')}" placeholder="Hřiště FK Nový Jičín">
+    </div>
+    <div class="form-field">
+      <label class="form-label">Celková délka</label>
+      <p class="comp-dur-display"><strong id="comp-total-dur">0</strong> min</p>
+    </div>
+    <div class="form-field">
+      <label class="form-label form-label--checkbox">
+        <input type="checkbox" id="comp-published" ${t.published ? 'checked' : ''}> Publikováno
+      </label>
+    </div>
+  </div>
+
+  <div class="form-field" style="margin-bottom:16px">
+    <label class="form-label">Poznámky pro asistenty</label>
+    <div class="md-toolbar" id="notes-md-toolbar">
+      <button type="button" data-md="bold" title="Tučně"><b>B</b></button>
+      <button type="button" data-md="italic" title="Kurzíva"><i>I</i></button>
+      <button type="button" data-md="bullet" title="Odrážka">• Seznam</button>
+      <button type="button" data-md="hr" title="Oddělovač">—</button>
+      <button type="button" data-md="preview" class="md-preview-toggle">👁 Náhled</button>
+    </div>
+    <textarea id="comp-notes" class="input textarea" rows="3" placeholder="Poznámky, upozornění...">${esc(t.notes || '')}</textarea>
+    <div id="comp-notes-preview" class="md-preview" style="display:none"></div>
+  </div>
+
+  <div id="comp-phases">${phasesHtml}</div>
+
+  <div id="comp-picker" class="comp-picker" style="display:none">
+    <div class="comp-picker__filters">
+      <input type="search" id="comp-pick-search" class="input input--sm" placeholder="Hledat cvičení...">
+      <select id="comp-pick-cat" class="input input--sm">
+        <option value="">Všechny kategorie</option>
+        ${DataLayer.getCategories().map(c => `<option value="${esc(c.slug)}">${esc(c.name)}</option>`).join('')}
+      </select>
+      <button type="button" class="btn btn--sm btn--outline" id="comp-picker-close">✕ Zavřít</button>
+    </div>
+    <div class="comp-picker__grid" id="comp-pick-grid">
+      ${DataLayer.getExercises().map(ex => {
+        const imgSrc = ex.imageData || ex.imageUrl || '';
+        const thumb = imgSrc
+          ? `<img src="${esc(imgSrc)}" class="comp-pick-card__thumb" alt="" loading="lazy">`
+          : `<div class="comp-pick-card__thumb comp-pick-card__thumb--empty">⚽</div>`;
+        return `<div class="comp-pick-card" data-exercise-id="${esc(ex.id)}" data-name="${esc(ex.name.toLowerCase())}" data-cat="${esc(ex.category)}">
+          ${thumb}
+          <div class="comp-pick-card__name">${esc(ex.name)}</div>
+          ${catBadge(ex.category)}
+          <div class="comp-pick-card__dur">⏱ ${esc(String(ex.duration_default))} min</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+let _compActivePhase = 1;
+
+function bindComposerEvents() {
+  // Back button
+  document.getElementById('comp-back')?.addEventListener('click', () => {
+    navigateSection('trainings');
+  });
+
+  // Save
+  document.getElementById('comp-save')?.addEventListener('click', saveTrainingComposer);
+
+  // Duration recalc on input
+  document.getElementById('admin-content').addEventListener('input', e => {
+    if (e.target.dataset.role === 'comp-duration') updateComposerTotals();
+  });
+
+  // Phase list actions (move/remove)
+  document.getElementById('comp-phases')?.addEventListener('click', e => {
+    const action = e.target.dataset.action;
+    if (action === 'pick-for-phase') {
+      _compActivePhase = parseInt(e.target.dataset.phase);
+      document.getElementById('comp-picker').style.display = '';
+      document.getElementById('comp-pick-search').value = '';
+      filterComposerPicker();
+      document.getElementById('comp-picker').scrollIntoView({ behavior: 'smooth' });
+    }
+    if (action === 'comp-remove') {
+      e.target.closest('.comp-ex-item')?.remove();
+      updateComposerTotals();
+    }
+    if (action === 'comp-move-up') {
+      const item = e.target.closest('.comp-ex-item');
+      const prev = item?.previousElementSibling;
+      if (prev) { item.parentNode.insertBefore(item, prev); }
+    }
+    if (action === 'comp-move-down') {
+      const item = e.target.closest('.comp-ex-item');
+      const next = item?.nextElementSibling;
+      if (next) { item.parentNode.insertBefore(next, item); }
+    }
+  });
+
+  // Picker search/filter
+  document.getElementById('comp-pick-search')?.addEventListener('input', debounce(filterComposerPicker, 150));
+  document.getElementById('comp-pick-cat')?.addEventListener('change', filterComposerPicker);
+
+  // Picker click
+  document.getElementById('comp-pick-grid')?.addEventListener('click', e => {
+    const card = e.target.closest('.comp-pick-card');
+    if (!card) return;
+    addExerciseToComposerPhase(card.dataset.exerciseId, _compActivePhase);
+  });
+
+  // Close picker
+  document.getElementById('comp-picker-close')?.addEventListener('click', () => {
+    document.getElementById('comp-picker').style.display = 'none';
+  });
+
+  // Notes markdown toolbar
+  document.getElementById('notes-md-toolbar')?.querySelectorAll('[data-md]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ta = document.getElementById('comp-notes');
+      if (!ta) return;
+      const action = btn.dataset.md;
+      if (action === 'preview') {
+        const preview = document.getElementById('comp-notes-preview');
+        if (preview.style.display === 'none') {
+          preview.innerHTML = renderMarkdown(ta.value);
+          preview.style.display = '';
+          ta.style.display = 'none';
+          btn.textContent = '✏️ Upravit';
+        } else {
+          preview.style.display = 'none';
+          ta.style.display = '';
+          btn.textContent = '👁 Náhled';
+        }
+        return;
+      }
+      const start = ta.selectionStart, end = ta.selectionEnd;
+      const sel = ta.value.slice(start, end);
+      let insert = '';
+      if (action === 'bold')   insert = `**${sel || 'tučný text'}**`;
+      if (action === 'italic') insert = `*${sel || 'kurzíva'}*`;
+      if (action === 'bullet') insert = `\n- ${sel || 'položka'}`;
+      if (action === 'hr')     insert = `\n---\n`;
+      ta.setRangeText(insert, start, end, 'end');
+      ta.focus();
+    });
+  });
+
+  updateComposerTotals();
+}
+
+function filterComposerPicker() {
+  const q   = (document.getElementById('comp-pick-search')?.value || '').toLowerCase();
+  const cat = document.getElementById('comp-pick-cat')?.value || '';
+  document.querySelectorAll('#comp-pick-grid .comp-pick-card').forEach(card => {
+    const matchQ   = !q   || (card.dataset.name || '').includes(q);
+    const matchCat = !cat || card.dataset.cat === cat;
+    card.style.display = matchQ && matchCat ? '' : 'none';
+  });
+}
+
+function addExerciseToComposerPhase(exerciseId, phase) {
+  const list = document.querySelector(`.comp-phase-list[data-phase="${phase}"]`);
+  if (!list) return;
+
+  // Check already added in this phase
+  if (list.querySelector(`[data-exercise-id="${exerciseId}"]`)) {
+    showToast('Toto cvičení je již v této fázi.', 'info');
+    return;
+  }
+
+  const ex = DataLayer.getExerciseById(exerciseId);
+  if (!ex) return;
+
+  const li = document.createElement('li');
+  li.className = 'comp-ex-item';
+  li.dataset.exerciseId = exerciseId;
+  li.innerHTML = `
+    <span class="comp-ex-item__handle" title="Přesunout">⠿</span>
+    ${catBadge(ex.category)}
+    <span class="comp-ex-item__name">${esc(ex.name)}</span>
+    <span class="comp-ex-item__dur">
+      <input type="number" class="input input--sm comp-dur" min="1" max="120" value="${esc(String(ex.duration_default))}" data-role="comp-duration">
+      min
+    </span>
+    <input type="text" class="input input--sm comp-ex-item__notes" placeholder="Poznámka...">
+    <button type="button" class="btn btn--sm btn--icon-only" data-action="comp-move-up" title="Nahoru">▲</button>
+    <button type="button" class="btn btn--sm btn--icon-only" data-action="comp-move-down" title="Dolů">▼</button>
+    <button type="button" class="btn btn--sm btn--danger btn--icon-only" data-action="comp-remove">✕</button>
+  `;
+  list.appendChild(li);
+  updateComposerTotals();
+  showToast(`${ex.name} přidáno do fáze ${phase}.`, 'success');
+}
+
+function updateComposerTotals() {
+  let total = 0;
+  [1, 2, 3, 4].forEach(ph => {
+    let phTotal = 0;
+    document.querySelectorAll(`.comp-phase-list[data-phase="${ph}"] [data-role="comp-duration"]`).forEach(inp => {
+      phTotal += parseInt(inp.value) || 0;
+    });
+    total += phTotal;
+    const span = document.querySelector(`[data-phase-time="${ph}"]`);
+    if (span) span.textContent = `${phTotal} min`;
+  });
+  const el = document.getElementById('comp-total-dur');
+  if (el) el.textContent = total;
+}
+
+function saveTrainingComposer() {
+  const id    = document.getElementById('comp-id')?.value || null;
+  const date  = document.getElementById('comp-date')?.value || '';
+  const title = document.getElementById('comp-title')?.value?.trim() || '';
+  if (!date || !title) { showToast('Vyplňte datum a název.', 'error'); return; }
+
+  const exercises = [];
+  let order = 1;
+  [1, 2, 3, 4].forEach(ph => {
+    document.querySelectorAll(`.comp-phase-list[data-phase="${ph}"] .comp-ex-item`).forEach(item => {
+      exercises.push({
+        exerciseId: item.dataset.exerciseId,
+        duration:   parseInt(item.querySelector('[data-role="comp-duration"]')?.value) || 10,
+        order:      order++,
+        notes:      item.querySelector('.comp-ex-item__notes')?.value?.trim() || ''
+      });
+    });
+  });
+
+  const training = {
+    id:             id || undefined,
+    date,
+    title,
+    eventType:      document.getElementById('comp-eventtype')?.value || 'trénink',
+    theme:          document.getElementById('comp-theme')?.value?.trim() || '',
+    location:       document.getElementById('comp-location')?.value?.trim() || '',
+    duration_total: exercises.reduce((s, e) => s + e.duration, 0),
+    notes:          document.getElementById('comp-notes')?.value?.trim() || '',
+    exercises,
+    published:      document.getElementById('comp-published')?.checked || false
+  };
+  if (!training.id) delete training.id;
+
+  DataLayer.saveTraining(training);
+  showToast('Trénink uložen!');
+  navigateSection('trainings');
+}
+
+function openTrainingComposer(training) {
+  currentSection = 'trainings';
+  document.getElementById('admin-page-title').textContent = training ? 'Upravit trénink' : 'Nový trénink';
+  document.getElementById('admin-header-actions').innerHTML = '';
+  document.getElementById('admin-content').innerHTML = buildComposerHTML(training);
+  bindComposerEvents();
+  updateComposerTotals();
 }
 
 // ─── EXERCISES SECTION ────────────────────────────────────────────────────────
@@ -255,7 +668,15 @@ function openExerciseModal(exercise) {
 
       <div class="form-field">
         <label class="form-label">Popis</label>
+        <div class="md-toolbar">
+          <button type="button" data-md="bold" title="Tučně (**text**)"><b>B</b></button>
+          <button type="button" data-md="italic" title="Kurzíva (*text*)"><i>I</i></button>
+          <button type="button" data-md="bullet" title="Odrážka (- )">• Seznam</button>
+          <button type="button" data-md="hr" title="Oddělovač">—</button>
+          <button type="button" data-md="preview" class="md-preview-toggle">👁 Náhled</button>
+        </div>
         <textarea id="mf-description" class="input textarea" rows="4" placeholder="Popis jak cvičení provádět...">${esc(ex.description)}</textarea>
+        <div id="mf-description-preview" class="md-preview" style="display:none"></div>
       </div>
 
       <!-- Image -->
@@ -328,7 +749,59 @@ function openExerciseModal(exercise) {
   });
 }
 
+function bindMdToolbar(textareaId, previewId) {
+  document.querySelectorAll('.md-toolbar [data-md]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ta = document.getElementById(textareaId);
+      if (!ta) return;
+      const action = btn.dataset.md;
+      if (action === 'preview') {
+        const preview = document.getElementById(previewId);
+        if (!preview) return;
+        if (preview.style.display === 'none') {
+          preview.innerHTML = renderMarkdown(ta.value);
+          preview.style.display = '';
+          ta.style.display = 'none';
+          btn.textContent = '✏️ Upravit';
+        } else {
+          preview.style.display = 'none';
+          ta.style.display = '';
+          btn.textContent = '👁 Náhled';
+        }
+        return;
+      }
+      const start = ta.selectionStart, end = ta.selectionEnd;
+      const sel = ta.value.slice(start, end);
+      let insert = '';
+      if (action === 'bold')   insert = `**${sel || 'tučný text'}**`;
+      if (action === 'italic') insert = `*${sel || 'kurzíva'}*`;
+      if (action === 'bullet') insert = `\n- ${sel || 'položka'}`;
+      if (action === 'hr')     insert = `\n---\n`;
+      ta.setRangeText(insert, start, end, 'end');
+      ta.focus();
+    });
+  });
+}
+
+function renderMarkdown(text) {
+  if (!text) return '';
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
+  const lines = text.split('\n'); const out = []; let inUl=false,inOl=false;
+  for (const line of lines) {
+    const t = line.trim();
+    if (/^- /.test(t)) { if(inOl){out.push('</ol>');inOl=false;} if(!inUl){out.push('<ul>');inUl=true;} out.push(`<li>${inline(t.slice(2))}</li>`); }
+    else if (/^\d+\. /.test(t)) { if(inUl){out.push('</ul>');inUl=false;} if(!inOl){out.push('<ol>');inOl=true;} out.push(`<li>${inline(t.replace(/^\d+\. /,''))}</li>`); }
+    else if (/^---/.test(t)) { if(inUl){out.push('</ul>');inUl=false;} if(inOl){out.push('</ol>');inOl=false;} out.push('<hr>'); }
+    else { if(inUl){out.push('</ul>');inUl=false;} if(inOl){out.push('</ol>');inOl=false;} out.push(t===''?'':`<p>${inline(t)}</p>`); }
+  }
+  if(inUl) out.push('</ul>'); if(inOl) out.push('</ol>');
+  return out.join('');
+}
+
 function bindExerciseModalEvents(originalEx) {
+  bindMdToolbar('mf-description', 'mf-description-preview');
+
   // Image tabs
   document.querySelectorAll('.img-tab').forEach(tab => {
     tab.addEventListener('click', () => {
@@ -991,6 +1464,279 @@ function renderExportSection() {
     localStorage.clear();
     showToast('Data smazána. Obnovte stránku.');
     setTimeout(() => window.location.reload(), 1500);
+  });
+}
+
+// ─── PLAYERS SECTION ─────────────────────────────────────────────────────────
+
+function renderPlayersAdminSection() {
+  const actionsEl = document.getElementById('admin-header-actions');
+  actionsEl.innerHTML = `<button class="btn btn--primary" id="btn-new-player">+ Nový hráč</button>`;
+  document.getElementById('btn-new-player').addEventListener('click', () => openPlayerModal(null));
+
+  const players = DataLayer.getPlayers().sort((a, b) => (a.number || 99) - (b.number || 99));
+
+  const html = players.length === 0
+    ? `<div class="empty-state"><p>Soupiska je prázdná. Přidejte prvního hráče.</p></div>`
+    : `<div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th style="width:60px">#</th>
+            <th>Jméno</th>
+            <th>Pozice</th>
+            <th>Nožička</th>
+            <th>Testy</th>
+            <th style="width:180px"></th>
+          </tr></thead>
+          <tbody>
+            ${players.map(p => `
+              <tr>
+                <td><strong>${esc(String(p.number || '—'))}</strong></td>
+                <td>${esc(p.name)}</td>
+                <td>${esc(p.position || '—')}</td>
+                <td>${esc(p.dominantFoot || '—')}</td>
+                <td>${(p.tests || []).length}</td>
+                <td class="td-actions">
+                  <button class="btn btn--sm btn--outline" data-action="edit-player" data-id="${esc(p.id)}">Upravit</button>
+                  <button class="btn btn--sm btn--primary" data-action="test-player" data-id="${esc(p.id)}">Testovat</button>
+                  <button class="btn btn--sm btn--danger"  data-action="del-player"  data-id="${esc(p.id)}">Smazat</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+  document.getElementById('admin-content').innerHTML = html;
+
+  document.getElementById('admin-content').addEventListener('click', e => {
+    const action = e.target.dataset.action;
+    if (action === 'edit-player') openPlayerModal(DataLayer.getPlayerById(e.target.dataset.id));
+    if (action === 'test-player') openTestingModal(DataLayer.getPlayerById(e.target.dataset.id));
+    if (action === 'del-player') {
+      const p = DataLayer.getPlayerById(e.target.dataset.id);
+      if (p && confirm(`Smazat hráče "${p.name}"?`)) {
+        DataLayer.deletePlayer(e.target.dataset.id);
+        showToast('Hráč smazán.');
+        renderPlayersAdminSection();
+      }
+    }
+  });
+}
+
+function openPlayerModal(player) {
+  const isNew = !player;
+  const p = player || { name: '', number: '', birthYear: 2018, position: '', dominantFoot: 'pravá', notes: '' };
+
+  const body = `
+    <form id="player-form" class="modal-form" novalidate>
+      <input type="hidden" id="pf-id" value="${esc(p.id || '')}">
+      <div class="form-row">
+        <div class="form-field" style="min-width:80px">
+          <label class="form-label">Číslo</label>
+          <input type="number" id="pf-number" class="input" value="${esc(String(p.number || ''))}" min="1" max="99" placeholder="10">
+        </div>
+        <div class="form-field form-field--grow">
+          <label class="form-label">Jméno a příjmení <span class="req">*</span></label>
+          <input type="text" id="pf-name" class="input" value="${esc(p.name)}" required placeholder="Jan Novák">
+        </div>
+        <div class="form-field" style="min-width:100px">
+          <label class="form-label">Rok nar.</label>
+          <input type="number" id="pf-birthyear" class="input" value="${esc(String(p.birthYear || 2018))}" min="2010" max="2030">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field form-field--grow">
+          <label class="form-label">Pozice</label>
+          <input type="text" id="pf-position" class="input" value="${esc(p.position || '')}" placeholder="útočník">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Dominantní noha</label>
+          <select id="pf-foot" class="input">
+            <option value="pravá" ${p.dominantFoot === 'pravá' ? 'selected' : ''}>Pravá</option>
+            <option value="levá"  ${p.dominantFoot === 'levá'  ? 'selected' : ''}>Levá</option>
+            <option value="obě"   ${p.dominantFoot === 'obě'   ? 'selected' : ''}>Obě</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Poznámka</label>
+        <textarea id="pf-notes" class="input textarea" rows="2">${esc(p.notes || '')}</textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn--outline" id="btn-player-cancel">Zrušit</button>
+        <button type="submit" class="btn btn--primary">💾 Uložit hráče</button>
+      </div>
+    </form>`;
+
+  openModal(isNew ? 'Nový hráč' : `Upravit: ${p.name}`, body, () => {
+    document.getElementById('btn-player-cancel').addEventListener('click', closeModal);
+    document.getElementById('player-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const id = document.getElementById('pf-id').value || null;
+      const name = document.getElementById('pf-name').value.trim();
+      if (!name) { showToast('Zadejte jméno hráče.', 'error'); return; }
+      DataLayer.savePlayer({
+        id: id || undefined,
+        name,
+        number:       parseInt(document.getElementById('pf-number').value) || null,
+        birthYear:    parseInt(document.getElementById('pf-birthyear').value) || 2018,
+        position:     document.getElementById('pf-position').value.trim(),
+        dominantFoot: document.getElementById('pf-foot').value,
+        notes:        document.getElementById('pf-notes').value.trim()
+      });
+      closeModal();
+      showToast('Hráč uložen!');
+      renderPlayersAdminSection();
+    });
+  });
+}
+
+function openTestingModal(player) {
+  if (!player) return;
+  currentSection = 'players-admin';
+  document.getElementById('admin-page-title').textContent = `Testování — ${player.name}`;
+  document.getElementById('admin-header-actions').innerHTML = '';
+
+  // Collect all test names for datalist
+  const allTestNames = [...new Set(
+    DataLayer.getPlayers().flatMap(p => (p.tests || []).map(t => t.testName)).filter(Boolean)
+  )];
+
+  const tests = (player.tests || []).slice().reverse();
+
+  const historyRows = tests.map(test => {
+    const best = test.lowerIsBetter
+      ? Math.min(...test.attempts)
+      : Math.max(...test.attempts);
+    const attemptsDisplay = test.attempts.map(a =>
+      a === best ? `<strong class="best-val">${a}</strong>` : String(a)
+    ).join(', ');
+    return `<tr>
+      <td>${esc(test.date)}</td>
+      <td>${esc(test.testName)}</td>
+      <td class="td-attempts">${attemptsDisplay}</td>
+      <td><span class="best-val">${best}</span></td>
+      <td>${esc(test.unit)}</td>
+      <td><button class="btn btn--sm btn--danger btn--icon-only" data-action="del-test" data-test-id="${esc(test.id)}" title="Smazat">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  const today = new Date().toISOString().split('T')[0];
+
+  document.getElementById('admin-content').innerHTML = `
+    <div class="comp-topbar" style="margin-bottom:1.5rem">
+      <button type="button" class="btn btn--outline" id="test-back">← Zpět na soupisku</button>
+      <h2 class="comp-topbar__title">${esc(player.name)}</h2>
+    </div>
+
+    ${tests.length > 0 ? `
+    <div class="table-wrap" style="margin-bottom:2rem">
+      <table class="test-history">
+        <thead><tr>
+          <th>Datum</th><th>Test</th><th>Pokusy</th><th>Nejlepší</th><th>Jednotka</th><th></th>
+        </tr></thead>
+        <tbody id="test-history-body">${historyRows}</tbody>
+      </table>
+    </div>` : `<p class="empty-inline" style="margin-bottom:1.5rem">Zatím žádné testy. Přidejte první níže.</p>`}
+
+    <div class="export-card">
+      <h3 style="margin-bottom:1rem">Přidat nový test</h3>
+      <datalist id="test-names-list">
+        ${allTestNames.map(n => `<option value="${esc(n)}">`).join('')}
+      </datalist>
+      <div class="form-row">
+        <div class="form-field form-field--grow">
+          <label class="form-label">Název testu <span class="req">*</span></label>
+          <input type="text" id="tf-name" class="input" list="test-names-list" placeholder="Rychlost 30m bez míče" autocomplete="off">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Datum</label>
+          <input type="date" id="tf-date" class="input" value="${esc(today)}">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Jednotka</label>
+          <input type="text" id="tf-unit" class="input" placeholder="s / m / počet / cm" style="max-width:100px">
+        </div>
+        <div class="form-field" style="align-self:flex-end">
+          <label class="form-label form-label--checkbox">
+            <input type="checkbox" id="tf-lower"> Nižší = lepší (čas, vzdálenost)
+          </label>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Pokusy</label>
+        <div id="attempt-list" class="attempt-list">
+          <input type="number" class="input input--sm attempt-val" step="0.01" placeholder="0">
+          <button type="button" class="btn btn--sm btn--outline" id="btn-add-attempt">+ Přidat pokus</button>
+        </div>
+        <div class="attempt-best-hint" id="attempt-best-hint"></div>
+      </div>
+      <button type="button" class="btn btn--primary" id="btn-add-test">✓ Přidat test</button>
+    </div>`;
+
+  // Back
+  document.getElementById('test-back').addEventListener('click', () => navigateSection('players-admin'));
+
+  // Delete test
+  document.getElementById('admin-content').addEventListener('click', e => {
+    if (e.target.dataset.action === 'del-test') {
+      if (!confirm('Smazat tento test?')) return;
+      DataLayer.deletePlayerTest(player.id, e.target.dataset.testId);
+      showToast('Test smazán.');
+      openTestingModal(DataLayer.getPlayerById(player.id));
+    }
+  });
+
+  // Add attempt
+  document.getElementById('btn-add-attempt').addEventListener('click', () => {
+    const list = document.getElementById('attempt-list');
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.className = 'input input--sm attempt-val'; inp.step = '0.01'; inp.placeholder = '0';
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button'; removeBtn.className = 'btn btn--sm btn--danger btn--icon-only';
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', () => { inp.remove(); removeBtn.remove(); updateAttemptBest(); });
+    // Insert before the "add" button
+    const addBtn = document.getElementById('btn-add-attempt');
+    list.insertBefore(inp, addBtn);
+    list.insertBefore(removeBtn, addBtn);
+    updateAttemptBest();
+  });
+
+  // Live best hint
+  document.getElementById('attempt-list').addEventListener('input', updateAttemptBest);
+  document.getElementById('tf-lower').addEventListener('change', updateAttemptBest);
+  document.getElementById('tf-unit').addEventListener('input', updateAttemptBest);
+
+  function updateAttemptBest() {
+    const vals = [...document.querySelectorAll('.attempt-val')]
+      .map(i => parseFloat(i.value)).filter(v => !isNaN(v));
+    const hint = document.getElementById('attempt-best-hint');
+    if (!vals.length) { hint.textContent = ''; return; }
+    const lower = document.getElementById('tf-lower').checked;
+    const best = lower ? Math.min(...vals) : Math.max(...vals);
+    const unit = document.getElementById('tf-unit').value || '';
+    hint.textContent = `Nejlepší: ${best} ${unit}`;
+  }
+
+  // Submit test
+  document.getElementById('btn-add-test').addEventListener('click', () => {
+    const testName = document.getElementById('tf-name').value.trim();
+    const date     = document.getElementById('tf-date').value;
+    const unit     = document.getElementById('tf-unit').value.trim();
+    const lower    = document.getElementById('tf-lower').checked;
+    const attempts = [...document.querySelectorAll('.attempt-val')]
+      .map(i => parseFloat(i.value)).filter(v => !isNaN(v));
+
+    if (!testName) { showToast('Zadejte název testu.', 'error'); return; }
+    if (!date)     { showToast('Zadejte datum.', 'error'); return; }
+    if (!attempts.length) { showToast('Zadejte alespoň jeden pokus.', 'error'); return; }
+
+    DataLayer.addPlayerTest(player.id, { date, testName, unit, lowerIsBetter: lower, attempts });
+    showToast('Test přidán!');
+    openTestingModal(DataLayer.getPlayerById(player.id));
   });
 }
 
