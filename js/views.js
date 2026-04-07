@@ -985,16 +985,32 @@ function renderPlayersPage(players) {
     return header + renderEmpty('Soupiska je zatím prázdná.');
   }
 
-  const sorted = [...players].sort((a, b) => (a.number || 99) - (b.number || 99));
+  const coaches = players.filter(p => p.role === 'trenér');
+  const playerList = [...players].filter(p => p.role !== 'trenér').sort((a, b) => (a.number || 99) - (b.number || 99));
 
-  const cards = sorted.map(p => `
-    <article class="player-card">
-      <div class="player-card__number">${p.number != null ? escHtml(String(p.number)) : '—'}</div>
-      ${p.nickname ? `<div class="player-card__nickname">${escHtml(p.nickname)}</div>` : ''}
-      <div class="player-card__name">${escHtml(p.name)}</div>
-    </article>`).join('');
+  const coachesHtml = coaches.length === 0 ? '' : `
+    <h2 class="roster-section-title">Trenéři</h2>
+    <div class="players-grid players-grid--coaches">
+      ${coaches.map(p => `
+        <article class="player-card player-card--coach">
+          <div class="player-card__number player-card__number--coach">🧑‍🏫</div>
+          <div class="player-card__nickname">${escHtml(p.name)}</div>
+          ${p.position ? `<div class="player-card__name">${escHtml(p.position)}</div>` : ''}
+        </article>`).join('')}
+    </div>
+    <h2 class="roster-section-title">Hráči</h2>`;
 
-  return header + `<div class="players-grid">${cards}</div>`;
+  const playersHtml = playerList.length === 0 ? '' : `
+    <div class="players-grid">
+      ${playerList.map(p => `
+        <article class="player-card">
+          <div class="player-card__number">${p.number != null ? escHtml(String(p.number)) : '—'}</div>
+          ${p.nickname ? `<div class="player-card__nickname">${escHtml(p.nickname)}</div>` : ''}
+          <div class="player-card__name">${escHtml(p.name)}</div>
+        </article>`).join('')}
+    </div>`;
+
+  return header + coachesHtml + playersHtml;
 }
 
 // ─── Testings list page ───────────────────────────────────────────────────────

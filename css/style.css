@@ -1584,6 +1584,10 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
   color: var(--color-text-muted);
 }
 
+.roster-section-title { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text-muted); margin: 1.25rem 0 .6rem; }
+
+.player-card__number--coach { background: #0891b2; font-size: 1.4rem; }
+
 /* ─── Testings page ──────────────────────────────────────────────────────── */
 .testings-list {
   display: flex;

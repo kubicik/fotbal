@@ -1441,17 +1441,17 @@ function renderPlayersAdminSection() {
           <thead><tr>
             <th style="width:60px">#</th>
             <th>Jméno</th>
-            <th>Pozice</th>
+            <th>Role / Pozice</th>
             <th>Nožička</th>
             <th style="width:140px"></th>
           </tr></thead>
           <tbody>
             ${players.map(p => `
               <tr>
-                <td><strong>${esc(String(p.number || '—'))}</strong></td>
-                <td>${esc(p.name)}</td>
+                <td><strong>${p.role === 'trenér' ? '🧑‍🏫' : esc(String(p.number || '—'))}</strong></td>
+                <td>${esc(p.name)}${p.role === 'trenér' ? ' <span class="badge" style="background:#0891b2;color:#fff;font-size:10px">Trenér</span>' : ''}</td>
                 <td>${esc(p.position || '—')}</td>
-                <td>${esc(p.dominantFoot || '—')}</td>
+                <td>${p.role === 'trenér' ? '—' : esc(p.dominantFoot || '—')}</td>
                 <td class="td-actions">
                   <button class="btn btn--sm btn--outline" data-action="edit-player" data-id="${esc(p.id)}">Upravit</button>
                   <button class="btn btn--sm btn--danger"  data-action="del-player"  data-id="${esc(p.id)}">Smazat</button>
@@ -1479,13 +1479,20 @@ function renderPlayersAdminSection() {
 
 function openPlayerModal(player) {
   const isNew = !player;
-  const p = player || { name: '', number: '', nickname: '', birthYear: 2018, position: '', dominantFoot: 'pravá', notes: '' };
+  const p = player || { name: '', number: '', nickname: '', role: 'hráč', position: '', dominantFoot: 'pravá', notes: '' };
 
   const body = `
     <form id="player-form" class="modal-form" novalidate>
       <input type="hidden" id="pf-id" value="${esc(p.id || '')}">
       <div class="form-row">
-        <div class="form-field" style="min-width:80px">
+        <div class="form-field">
+          <label class="form-label">Role</label>
+          <select id="pf-role" class="input">
+            <option value="hráč"   ${(p.role || 'hráč') === 'hráč'   ? 'selected' : ''}>Hráč</option>
+            <option value="trenér" ${p.role === 'trenér' ? 'selected' : ''}>Trenér</option>
+          </select>
+        </div>
+        <div class="form-field" style="min-width:80px" id="pf-number-wrap">
           <label class="form-label">Číslo</label>
           <input type="number" id="pf-number" class="input" value="${p.number != null ? esc(String(p.number)) : ''}" min="1" max="99" placeholder="—">
         </div>
@@ -1493,12 +1500,12 @@ function openPlayerModal(player) {
           <label class="form-label">Jméno a příjmení <span class="req">*</span></label>
           <input type="text" id="pf-name" class="input" value="${esc(p.name)}" required placeholder="Jan Novák">
         </div>
+      </div>
+      <div class="form-row" id="pf-player-fields">
         <div class="form-field" style="min-width:110px">
           <label class="form-label">Přezdívka na dresu</label>
           <input type="text" id="pf-nickname" class="input" value="${esc(p.nickname || '')}" placeholder="Honza">
         </div>
-      </div>
-      <div class="form-row">
         <div class="form-field form-field--grow">
           <label class="form-label">Pozice</label>
           <input type="text" id="pf-position" class="input" value="${esc(p.position || '')}" placeholder="útočník">
@@ -1506,10 +1513,16 @@ function openPlayerModal(player) {
         <div class="form-field">
           <label class="form-label">Dominantní noha</label>
           <select id="pf-foot" class="input">
-            <option value="pravá" ${p.dominantFoot === 'pravá' ? 'selected' : ''}>Pravá</option>
+            <option value="pravá" ${(p.dominantFoot || 'pravá') === 'pravá' ? 'selected' : ''}>Pravá</option>
             <option value="levá"  ${p.dominantFoot === 'levá'  ? 'selected' : ''}>Levá</option>
             <option value="obě"   ${p.dominantFoot === 'obě'   ? 'selected' : ''}>Obě</option>
           </select>
+        </div>
+      </div>
+      <div class="form-row" id="pf-coach-fields" style="display:none">
+        <div class="form-field form-field--grow">
+          <label class="form-label">Funkce</label>
+          <input type="text" id="pf-coach-role" class="input" value="${esc(p.position || '')}" placeholder="Hlavní trenér / Asistent">
         </div>
       </div>
       <div class="form-field">
@@ -1518,30 +1531,44 @@ function openPlayerModal(player) {
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn--outline" id="btn-player-cancel">Zrušit</button>
-        <button type="submit" class="btn btn--primary">💾 Uložit hráče</button>
+        <button type="submit" class="btn btn--primary">💾 Uložit</button>
       </div>
     </form>`;
 
-  openModal(isNew ? 'Nový hráč' : `Upravit: ${p.name}`, body, () => {
+  openModal(isNew ? 'Nová osoba' : `Upravit: ${p.name}`, body, () => {
     document.getElementById('btn-player-cancel').addEventListener('click', closeModal);
+
+    // Toggle fields by role
+    const roleToggle = () => {
+      const isCoach = document.getElementById('pf-role').value === 'trenér';
+      document.getElementById('pf-player-fields').style.display = isCoach ? 'none' : '';
+      document.getElementById('pf-coach-fields').style.display  = isCoach ? '' : 'none';
+      document.getElementById('pf-number-wrap').style.display   = isCoach ? 'none' : '';
+    };
+    document.getElementById('pf-role').addEventListener('change', roleToggle);
+    roleToggle();
+
     document.getElementById('player-form').addEventListener('submit', e => {
       e.preventDefault();
-      const id = document.getElementById('pf-id').value || null;
+      const id   = document.getElementById('pf-id').value || null;
       const name = document.getElementById('pf-name').value.trim();
-      if (!name) { showToast('Zadejte jméno hráče.', 'error'); return; }
-      const numVal = document.getElementById('pf-number').value.trim();
+      if (!name) { showToast('Zadejte jméno.', 'error'); return; }
+      const role    = document.getElementById('pf-role').value;
+      const isCoach = role === 'trenér';
+      const numVal  = document.getElementById('pf-number').value.trim();
       DataLayer.savePlayer({
         id: id || undefined,
         name,
-        number:       numVal !== '' ? parseInt(numVal) : null,
-        nickname:     document.getElementById('pf-nickname').value.trim(),
-        birthYear:    parseInt(document.getElementById('pf-birthyear').value) || 2018,
-        position:     document.getElementById('pf-position').value.trim(),
-        dominantFoot: document.getElementById('pf-foot').value,
+        role,
+        number:       isCoach ? null : (numVal !== '' ? parseInt(numVal) : null),
+        nickname:     isCoach ? '' : document.getElementById('pf-nickname').value.trim(),
+        position:     isCoach ? document.getElementById('pf-coach-role').value.trim()
+                              : document.getElementById('pf-position').value.trim(),
+        dominantFoot: isCoach ? '' : document.getElementById('pf-foot').value,
         notes:        document.getElementById('pf-notes').value.trim()
       });
       closeModal();
-      showToast('Hráč uložen!');
+      showToast('Uloženo!');
       renderPlayersAdminSection();
     });
   });
