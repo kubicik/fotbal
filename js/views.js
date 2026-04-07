@@ -976,10 +976,9 @@ function renderPlayersPage(players) {
 
   const cards = sorted.map(p => `
     <article class="player-card">
-      <div class="player-card__number">${escHtml(String(p.number || '—'))}</div>
+      <div class="player-card__number">${p.number != null ? escHtml(String(p.number)) : '—'}</div>
+      ${p.nickname ? `<div class="player-card__nickname">${escHtml(p.nickname)}</div>` : ''}
       <div class="player-card__name">${escHtml(p.name)}</div>
-      ${p.position ? `<div class="player-card__position">${escHtml(p.position)}</div>` : ''}
-      ${p.dominantFoot ? `<div class="player-card__foot">nožička: ${escHtml(p.dominantFoot)}</div>` : ''}
     </article>`).join('');
 
   return header + `<div class="players-grid">${cards}</div>`;

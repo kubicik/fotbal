@@ -1525,7 +1525,7 @@ function renderPlayersAdminSection() {
 
 function openPlayerModal(player) {
   const isNew = !player;
-  const p = player || { name: '', number: '', birthYear: 2018, position: '', dominantFoot: 'pravá', notes: '' };
+  const p = player || { name: '', number: '', nickname: '', birthYear: 2018, position: '', dominantFoot: 'pravá', notes: '' };
 
   const body = `
     <form id="player-form" class="modal-form" novalidate>
@@ -1533,15 +1533,15 @@ function openPlayerModal(player) {
       <div class="form-row">
         <div class="form-field" style="min-width:80px">
           <label class="form-label">Číslo</label>
-          <input type="number" id="pf-number" class="input" value="${esc(String(p.number || ''))}" min="1" max="99" placeholder="10">
+          <input type="number" id="pf-number" class="input" value="${p.number != null ? esc(String(p.number)) : ''}" min="1" max="99" placeholder="—">
         </div>
         <div class="form-field form-field--grow">
           <label class="form-label">Jméno a příjmení <span class="req">*</span></label>
           <input type="text" id="pf-name" class="input" value="${esc(p.name)}" required placeholder="Jan Novák">
         </div>
-        <div class="form-field" style="min-width:100px">
-          <label class="form-label">Rok nar.</label>
-          <input type="number" id="pf-birthyear" class="input" value="${esc(String(p.birthYear || 2018))}" min="2010" max="2030">
+        <div class="form-field" style="min-width:110px">
+          <label class="form-label">Přezdívka na dresu</label>
+          <input type="text" id="pf-nickname" class="input" value="${esc(p.nickname || '')}" placeholder="Honza">
         </div>
       </div>
       <div class="form-row">
@@ -1575,10 +1575,12 @@ function openPlayerModal(player) {
       const id = document.getElementById('pf-id').value || null;
       const name = document.getElementById('pf-name').value.trim();
       if (!name) { showToast('Zadejte jméno hráče.', 'error'); return; }
+      const numVal = document.getElementById('pf-number').value.trim();
       DataLayer.savePlayer({
         id: id || undefined,
         name,
-        number:       parseInt(document.getElementById('pf-number').value) || null,
+        number:       numVal !== '' ? parseInt(numVal) : null,
+        nickname:     document.getElementById('pf-nickname').value.trim(),
         birthYear:    parseInt(document.getElementById('pf-birthyear').value) || 2018,
         position:     document.getElementById('pf-position').value.trim(),
         dominantFoot: document.getElementById('pf-foot').value,
