@@ -41,8 +41,14 @@ function formatDateShort(dateStr) {
   } catch (e) { return dateStr; }
 }
 
-function categoryBadge(category) {
-  return `<span class="badge badge--${escHtml(category)}">${escHtml(CATEGORY_LABELS[category] || category)}</span>`;
+function categoryBadge(categorySlug) {
+  const cats = (typeof DataLayer !== 'undefined') ? DataLayer.getCategories() : [];
+  const cat  = cats.find(c => c.slug === categorySlug);
+  const label = cat ? cat.name : (CATEGORY_LABELS[categorySlug] || categorySlug);
+  if (cat && cat.color) {
+    return `<span class="badge" style="background:${escHtml(cat.color)};color:#fff;">${escHtml(label)}</span>`;
+  }
+  return `<span class="badge badge--${escHtml(categorySlug)}">${escHtml(label)}</span>`;
 }
 
 function renderEmpty(message, actionHtml = '') {
@@ -511,7 +517,8 @@ function renderTrainingForm(training, exercises, isNew) {
         <input type="search" id="picker-search" class="input" placeholder="Hledat cvičení..." aria-label="Hledat cvičení">
         <select id="picker-cat" class="input" aria-label="Filtrovat kategorie">
           <option value="">Všechny kategorie</option>
-          ${CATEGORY_ORDER.map(cat => `<option value="${escHtml(cat)}">${escHtml(CATEGORY_LABELS[cat])}</option>`).join('')}
+          ${((typeof DataLayer !== 'undefined') ? DataLayer.getCategories() : []).map(cat =>
+            `<option value="${escHtml(cat.slug)}">${escHtml(cat.name)}</option>`).join('')}
         </select>
       </div>
       <div class="picker-table-wrap">
@@ -555,9 +562,10 @@ function renderExerciseForm(exercise, isNew) {
     equipment: []
   };
 
-  const categoryOptions = CATEGORY_ORDER.map(cat => {
-    const selected = cat === ex.category ? ' selected' : '';
-    return `<option value="${escHtml(cat)}"${selected}>${escHtml(CATEGORY_LABELS[cat])}</option>`;
+  const _cats = (typeof DataLayer !== 'undefined') ? DataLayer.getCategories() : [];
+  const categoryOptions = _cats.map(cat => {
+    const selected = cat.slug === ex.category ? ' selected' : '';
+    return `<option value="${escHtml(cat.slug)}"${selected}>${escHtml(cat.name)}</option>`;
   }).join('');
 
   const videoPreview = ex.videoUrl

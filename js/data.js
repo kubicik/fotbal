@@ -4,9 +4,11 @@
  */
 
 const DATA_KEYS = {
-  exercises: 'fnj_exercises',
-  trainings: 'fnj_trainings',
-  editMode: 'fnj_editmode',
+  exercises:   'fnj_exercises',
+  trainings:   'fnj_trainings',
+  categories:  'fnj_categories',
+  users:       'fnj_users',
+  editMode:    'fnj_editmode',
   initialized: 'fnj_initialized'
 };
 
@@ -46,32 +48,105 @@ const DataLayer = (() => {
 
     console.log('First run — loading data from repository JSON files...');
     try {
-      const [exercisesRes, trainingsRes] = await Promise.all([
+      const [exercisesRes, trainingsRes, categoriesRes, usersRes] = await Promise.all([
         fetch('./data/exercises.json'),
-        fetch('./data/trainings.json')
+        fetch('./data/trainings.json'),
+        fetch('./data/categories.json'),
+        fetch('./data/users.json')
       ]);
 
-      if (exercisesRes.ok && trainingsRes.ok) {
-        const exercises = await exercisesRes.json();
-        const trainings = await trainingsRes.json();
-        saveToStorage(DATA_KEYS.exercises, exercises);
-        saveToStorage(DATA_KEYS.trainings, trainings);
-        localStorage.setItem(DATA_KEYS.initialized, '1');
-        console.log(`Loaded ${exercises.length} exercises and ${trainings.length} trainings.`);
-      } else {
-        // Fallback: start with empty arrays
-        saveToStorage(DATA_KEYS.exercises, []);
-        saveToStorage(DATA_KEYS.trainings, []);
-        localStorage.setItem(DATA_KEYS.initialized, '1');
-        console.warn('Could not fetch JSON files — starting with empty data.');
-      }
-    } catch (e) {
-      // Works on file:// too (fetch may fail)
-      saveToStorage(DATA_KEYS.exercises, []);
-      saveToStorage(DATA_KEYS.trainings, []);
+      if (exercisesRes.ok)  saveToStorage(DATA_KEYS.exercises,  await exercisesRes.json());
+      else                  saveToStorage(DATA_KEYS.exercises,  []);
+
+      if (trainingsRes.ok)  saveToStorage(DATA_KEYS.trainings,  await trainingsRes.json());
+      else                  saveToStorage(DATA_KEYS.trainings,  []);
+
+      if (categoriesRes.ok) saveToStorage(DATA_KEYS.categories, await categoriesRes.json());
+      else                  saveToStorage(DATA_KEYS.categories, _defaultCategories());
+
+      if (usersRes.ok)      saveToStorage(DATA_KEYS.users,      await usersRes.json());
+      else                  saveToStorage(DATA_KEYS.users,      []);
+
       localStorage.setItem(DATA_KEYS.initialized, '1');
-      console.warn('Fetch error (possibly file:// protocol) — starting with empty data.', e);
+    } catch (e) {
+      saveToStorage(DATA_KEYS.exercises,  []);
+      saveToStorage(DATA_KEYS.trainings,  []);
+      saveToStorage(DATA_KEYS.categories, _defaultCategories());
+      saveToStorage(DATA_KEYS.users,      []);
+      localStorage.setItem(DATA_KEYS.initialized, '1');
+      console.warn('Fetch error — starting with default data.', e);
     }
+  }
+
+  // ─── Default categories fallback ────────────────────────────────────────
+
+  function _defaultCategories() {
+    return [
+      { id: 'cat-001', name: 'Rozcvičení', slug: 'rozcvičení', color: '#22c55e' },
+      { id: 'cat-002', name: 'Technika',   slug: 'technika',   color: '#3b82f6' },
+      { id: 'cat-003', name: 'Hra',        slug: 'hra',        color: '#f97316' },
+      { id: 'cat-004', name: 'Kondice',    slug: 'kondice',    color: '#ef4444' },
+      { id: 'cat-005', name: 'Závěr',      slug: 'závěr',      color: '#a855f7' }
+    ];
+  }
+
+  // ─── Categories ──────────────────────────────────────────────────────────
+
+  function getCategories() {
+    return getFromStorage(DATA_KEYS.categories) || _defaultCategories();
+  }
+
+  function getCategoryBySlug(slug) {
+    return getCategories().find(c => c.slug === slug) || null;
+  }
+
+  function saveCategory(cat) {
+    const categories = getCategories();
+    if (!cat.id) {
+      cat.id = generateId('cat');
+      if (!cat.slug) cat.slug = cat.name.toLowerCase().replace(/\s+/g, '-');
+      categories.push(cat);
+    } else {
+      const idx = categories.findIndex(c => c.id === cat.id);
+      if (idx >= 0) categories[idx] = cat;
+      else categories.push(cat);
+    }
+    saveToStorage(DATA_KEYS.categories, categories);
+    return cat;
+  }
+
+  function deleteCategory(id) {
+    const categories = getCategories().filter(c => c.id !== id);
+    saveToStorage(DATA_KEYS.categories, categories);
+  }
+
+  // ─── Users ───────────────────────────────────────────────────────────────
+
+  function getUsers() {
+    return getFromStorage(DATA_KEYS.users) || [];
+  }
+
+  function getUserById(id) {
+    return getUsers().find(u => u.id === id) || null;
+  }
+
+  function saveUser(user) {
+    const users = getUsers();
+    if (!user.id) {
+      user.id = generateId('usr');
+      user.createdAt = new Date().toISOString().split('T')[0];
+      users.push(user);
+    } else {
+      const idx = users.findIndex(u => u.id === user.id);
+      if (idx >= 0) users[idx] = user;
+      else users.push(user);
+    }
+    saveToStorage(DATA_KEYS.users, users);
+    return user;
+  }
+
+  function deleteUser(id) {
+    saveToStorage(DATA_KEYS.users, getUsers().filter(u => u.id !== id));
   }
 
   // ─── Exercises ───────────────────────────────────────────────────────────
@@ -159,11 +234,10 @@ const DataLayer = (() => {
   // ─── Export / Import ─────────────────────────────────────────────────────
 
   function exportData() {
-    const exercises = getExercises();
-    const trainings = getTrainings();
-
-    _downloadJSON(exercises, 'exercises.json');
-    setTimeout(() => _downloadJSON(trainings, 'trainings.json'), 300);
+    _downloadJSON(getExercises(),  'exercises.json');
+    setTimeout(() => _downloadJSON(getTrainings(),  'trainings.json'), 300);
+    setTimeout(() => _downloadJSON(getCategories(), 'categories.json'), 600);
+    setTimeout(() => _downloadJSON(getUsers(),      'users.json'),      900);
   }
 
   function _downloadJSON(data, filename) {
@@ -216,19 +290,25 @@ const DataLayer = (() => {
   }
 
   async function reloadFromRepo() {
-    const [exercisesRes, trainingsRes] = await Promise.all([
-      fetch('./data/exercises.json?' + Date.now()),
-      fetch('./data/trainings.json?' + Date.now())
+    const ts = Date.now();
+    const [exRes, trRes, catRes, usrRes] = await Promise.all([
+      fetch('./data/exercises.json?'  + ts),
+      fetch('./data/trainings.json?'  + ts),
+      fetch('./data/categories.json?' + ts),
+      fetch('./data/users.json?'      + ts)
     ]);
 
-    if (!exercisesRes.ok || !trainingsRes.ok) {
-      throw new Error('Nepodařilo se načíst soubory z repozitáře.');
-    }
+    if (!exRes.ok || !trRes.ok) throw new Error('Nepodařilo se načíst soubory z repozitáře.');
 
-    const exercises = await exercisesRes.json();
-    const trainings = await trainingsRes.json();
-    saveToStorage(DATA_KEYS.exercises, exercises);
-    saveToStorage(DATA_KEYS.trainings, trainings);
+    const exercises   = await exRes.json();
+    const trainings   = await trRes.json();
+    const categories  = catRes.ok  ? await catRes.json()  : _defaultCategories();
+    const users       = usrRes.ok  ? await usrRes.json()  : [];
+
+    saveToStorage(DATA_KEYS.exercises,  exercises);
+    saveToStorage(DATA_KEYS.trainings,  trainings);
+    saveToStorage(DATA_KEYS.categories, categories);
+    saveToStorage(DATA_KEYS.users,      users);
     return { exercises: exercises.length, trainings: trainings.length };
   }
 
@@ -236,19 +316,12 @@ const DataLayer = (() => {
 
   return {
     init,
-    getExercises,
-    getExerciseById,
-    saveExercise,
-    deleteExercise,
-    getTrainings,
-    getTrainingById,
-    saveTraining,
-    deleteTraining,
-    isEditMode,
-    setEditMode,
-    exportData,
-    importFromFiles,
-    reloadFromRepo,
+    getExercises, getExerciseById, saveExercise, deleteExercise,
+    getTrainings, getTrainingById, saveTraining, deleteTraining,
+    getCategories, getCategoryBySlug, saveCategory, deleteCategory,
+    getUsers, getUserById, saveUser, deleteUser,
+    isEditMode, setEditMode,
+    exportData, importFromFiles, reloadFromRepo,
     generateId
   };
 })();
