@@ -1486,3 +1486,21 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
     text-align: center;
   }
 }
+
+/* ─── External calendar events ───────────────────────────── */
+.cal-event--ext {
+  background: #4285f4;
+  cursor: default;
+}
+.cal-list-item--ext {
+  border-left: 3px solid #4285f4;
+  cursor: default;
+}
+.cal-list-item__meta--ext { color: #4285f4; }
+
+.cal-ical-badge {
+  display: inline-flex; align-items: center;
+  font-size: .78rem; padding: 3px 10px; border-radius: 20px; font-weight: 500;
+}
+.cal-ical-badge--ok   { background: #dcfce7; color: #16a34a; }
+.cal-ical-badge--warn { background: #fef3c7; color: #92400e; }

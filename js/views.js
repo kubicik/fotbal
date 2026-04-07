@@ -695,7 +695,8 @@ function renderConceptPage(concept) {
 
 // ─── Calendar page ────────────────────────────────────────────────────────────
 
-function renderCalendarPage(trainings, year, month) {
+function renderCalendarPage(trainings, year, month, externalEvents) {
+  externalEvents = externalEvents || [];
   const now    = new Date();
   const y      = year  || now.getFullYear();
   const m      = month !== undefined ? month : now.getMonth(); // 0-based
@@ -706,11 +707,17 @@ function renderCalendarPage(trainings, year, month) {
   const monthNames = ['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
   const dayNames   = ['Po','Út','St','Čt','Pá','So','Ne'];
 
-  // Build map: date string → trainings
+  // Build map: date string → trainings + external events
   const byDate = {};
   trainings.forEach(t => {
+    if (!t.date) return;
     if (!byDate[t.date]) byDate[t.date] = [];
-    byDate[t.date].push(t);
+    byDate[t.date].push({ ...t, external: false });
+  });
+  externalEvents.forEach(ev => {
+    if (!ev.date) return;
+    if (!byDate[ev.date]) byDate[ev.date] = [];
+    byDate[ev.date].push({ ...ev, external: true });
   });
 
   // Prev/next month params
@@ -732,7 +739,9 @@ function renderCalendarPage(trainings, year, month) {
     const isToday  = dateStr === now.toISOString().split('T')[0];
     const dayTrainings = byDate[dateStr] || [];
     const dots = dayTrainings.map(t =>
-      `<a href="#/training/${escHtml(t.id)}" class="cal-event" title="${escHtml(t.title)}">${escHtml(t.title)}</a>`
+      t.external
+        ? `<span class="cal-event cal-event--ext" title="${escHtml(t.title)}">${escHtml(t.title)}</span>`
+        : `<a href="#/training/${escHtml(t.id)}" class="cal-event" title="${escHtml(t.title)}">${escHtml(t.title)}</a>`
     ).join('');
     cells += `<div class="cal-cell ${isToday ? 'cal-cell--today' : ''} ${dayTrainings.length ? 'cal-cell--has-event' : ''}">
       <span class="cal-cell__day">${dayNum}</span>
@@ -740,27 +749,42 @@ function renderCalendarPage(trainings, year, month) {
     </div>`;
   }
 
-  // Trainings list for current month
-  const monthTrainings = trainings
-    .filter(t => t.date && t.date.startsWith(`${y}-${String(m + 1).padStart(2,'0')}`))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  // All events for current month (trainings + external), sorted by date
+  const prefix = `${y}-${String(m + 1).padStart(2,'0')}`;
+  const allMonthEvents = [
+    ...trainings.map(t => ({ ...t, external: false })),
+    ...externalEvents.map(ev => ({ ...ev, external: true }))
+  ].filter(e => e.date && e.date.startsWith(prefix))
+   .sort((a, b) => a.date.localeCompare(b.date));
 
-  const listHtml = monthTrainings.length === 0
-    ? `<p class="cal-empty">V tomto měsíci žádné tréninky.</p>`
-    : monthTrainings.map(t => `
-      <a href="#/training/${escHtml(t.id)}" class="cal-list-item">
-        <div class="cal-list-item__date">${formatDateShort(t.date)}</div>
-        <div class="cal-list-item__info">
-          <strong>${escHtml(t.title)}</strong>
-          ${t.theme ? `<span class="cal-list-item__theme">· ${escHtml(t.theme)}</span>` : ''}
-        </div>
-        <div class="cal-list-item__meta">⏱ ${escHtml(String(t.duration_total))} min</div>
-      </a>`).join('');
+  const listHtml = allMonthEvents.length === 0
+    ? `<p class="cal-empty">V tomto měsíci žádné události.</p>`
+    : allMonthEvents.map(e => e.external
+        ? `<div class="cal-list-item cal-list-item--ext">
+            <div class="cal-list-item__date">${formatDateShort(e.date)}</div>
+            <div class="cal-list-item__info">
+              <strong>${escHtml(e.title)}</strong>
+              ${e.location ? `<span class="cal-list-item__theme">· ${escHtml(e.location)}</span>` : ''}
+            </div>
+            <div class="cal-list-item__meta cal-list-item__meta--ext">📅 Google</div>
+          </div>`
+        : `<a href="#/training/${escHtml(e.id)}" class="cal-list-item">
+            <div class="cal-list-item__date">${formatDateShort(e.date)}</div>
+            <div class="cal-list-item__info">
+              <strong>${escHtml(e.title)}</strong>
+              ${e.theme ? `<span class="cal-list-item__theme">· ${escHtml(e.theme)}</span>` : ''}
+            </div>
+            <div class="cal-list-item__meta">⏱ ${escHtml(String(e.duration_total))} min</div>
+          </a>`
+      ).join('');
 
   const settings = (typeof DataLayer !== 'undefined') ? DataLayer.getSettings() : {};
   const icsBtn = `<button class="btn btn--outline btn--sm" onclick="downloadICS()">📅 Stáhnout .ics</button>`;
+  const extCount = externalEvents.length;
   const icalHint = settings.icalUrl
-    ? `<span class="cal-ical-info">Sdílený kalendář: <a href="${escHtml(settings.icalUrl)}" target="_blank" rel="noopener">odkaz</a></span>`
+    ? `<span class="cal-ical-badge ${extCount > 0 ? 'cal-ical-badge--ok' : 'cal-ical-badge--warn'}">
+        ${extCount > 0 ? `✓ Google Kalendář (${extCount} událostí)` : '⚠ Google Kalendář (nepodařilo se načíst)'}
+       </span>`
     : '';
 
   return `<div class="page-header">

@@ -118,9 +118,13 @@ const App = (() => {
 
       case 'calendar': {
         const now = new Date();
-        const calYear  = route.id  ? parseInt(route.id)     : now.getFullYear();
+        const calYear  = route.id     ? parseInt(route.id)     : now.getFullYear();
         const calMonth = route.action ? parseInt(route.action) : now.getMonth();
-        html = renderCalendarPage(DataLayer.getTrainings(), calYear, calMonth);
+        const settings = DataLayer.getSettings();
+        // Show loading immediately, fetch external events in background
+        main().innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Načítám kalendář...</span></div>`;
+        const externalEvents = await fetchExternalEvents(settings.icalUrl || '');
+        html = renderCalendarPage(DataLayer.getTrainings(), calYear, calMonth, externalEvents);
         document.title = 'Kalendář — FK Nový Jičín U8';
         break;
       }
@@ -642,6 +646,69 @@ const App = (() => {
       clearTimeout(timer);
       timer = setTimeout(() => fn.apply(this, args), delay);
     };
+  }
+
+  // ─── iCal fetch + parse ────────────────────────────────────────────────────
+
+  function parseICS(text) {
+    const events = [];
+    // Unfold RFC 5545 continuation lines
+    const unfolded = text.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '');
+    const lines = unfolded.split(/\r?\n/);
+    let cur = null;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed === 'BEGIN:VEVENT') { cur = {}; continue; }
+      if (trimmed === 'END:VEVENT' && cur) { events.push(cur); cur = null; continue; }
+      if (!cur) continue;
+      const colon = line.indexOf(':');
+      if (colon < 1) continue;
+      const key = line.slice(0, colon).split(';')[0].toUpperCase();
+      cur[key] = line.slice(colon + 1).replace(/\\n/g, '\n').replace(/\\,/g, ',').trim();
+    }
+    return events;
+  }
+
+  function icalToDateStr(dtstart) {
+    if (!dtstart) return null;
+    const d = dtstart.replace(/T.*/, '').replace(/-/g, '');
+    if (d.length !== 8) return null;
+    return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+  }
+
+  async function fetchExternalEvents(rawUrl) {
+    if (!rawUrl) return [];
+    const url = rawUrl.replace(/^webcal:\/\//i, 'https://');
+    const PROXY = 'https://api.allorigins.win/raw?url=';
+    try {
+      // Try direct first (works if server sends CORS headers)
+      let res;
+      try {
+        res = await Promise.race([
+          fetch(url, { mode: 'cors' }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))
+        ]);
+      } catch {
+        // Fallback to CORS proxy
+        res = await Promise.race([
+          fetch(PROXY + encodeURIComponent(url)),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000))
+        ]);
+      }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      return parseICS(text).map(ev => ({
+        id:       ev['UID'] || Math.random().toString(36).slice(2),
+        title:    ev['SUMMARY'] || 'Událost',
+        date:     icalToDateStr(ev['DTSTART']) || '',
+        location: ev['LOCATION'] || '',
+        description: ev['DESCRIPTION'] || '',
+        external: true
+      })).filter(ev => ev.date);
+    } catch (e) {
+      console.warn('iCal fetch failed:', e.message);
+      return [];
+    }
   }
 
   // ─── ICS export ───────────────────────────────────────────────────────────
