@@ -1504,3 +1504,29 @@ input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .cal-ical-badge--ok   { background: #dcfce7; color: #16a34a; }
 .cal-ical-badge--warn { background: #fef3c7; color: #92400e; }
+
+/* ─── Calendar legend ────────────────────────────────────── */
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.25rem;
+  padding: .75rem 1rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  margin-bottom: 1.25rem;
+  font-size: .82rem;
+}
+.cal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text);
+  font-weight: 500;
+}
+.cal-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}

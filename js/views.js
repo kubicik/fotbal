@@ -3,6 +3,18 @@
  * FK Nový Jičín U8 Coach App
  */
 
+const EVENT_TYPES = {
+  trénink:     { label: 'Trénink',     color: '#1e40af', icon: '⚽' },
+  zapas_doma:  { label: 'Zápas doma',  color: '#16a34a', icon: '🏠' },
+  zapas_venku: { label: 'Zápas venku', color: '#ea580c', icon: '🚌' },
+  turnaj:      { label: 'Turnaj',      color: '#9333ea', icon: '🏆' }
+};
+
+function eventTypeBadge(type) {
+  const et = EVENT_TYPES[type] || EVENT_TYPES['trénink'];
+  return `<span class="badge" style="background:${escHtml(et.color)};color:#fff;">${et.icon} ${escHtml(et.label)}</span>`;
+}
+
 const CATEGORY_LABELS = {
   'rozcvičení': 'Rozcvičení',
   'technika': 'Technika',
@@ -103,11 +115,13 @@ function renderTrainings(trainings, editMode) {
       ? `<span class="badge badge--published">Publikováno</span>`
       : `<span class="badge badge--draft">Koncept</span>`;
 
-    return `<article class="card card--training" data-id="${escHtml(t.id)}" role="article">
+    const et = EVENT_TYPES[t.eventType] || EVENT_TYPES['trénink'];
+    return `<article class="card card--training" data-id="${escHtml(t.id)}" role="article" style="border-top:4px solid ${escHtml(et.color)}">
       <a href="#/training/${escHtml(t.id)}" class="card__link" aria-label="${escHtml(t.title)}">
         <div class="card__header">
           <div class="card__meta">
             <time class="card__date" datetime="${escHtml(t.date)}">${formatDateShort(t.date)}</time>
+            ${eventTypeBadge(t.eventType)}
             ${publishedBadge}
           </div>
           <h2 class="card__title">${escHtml(t.title)}</h2>
@@ -195,6 +209,7 @@ function renderTrainingDetail(training, exercises, editMode) {
         <div class="detail-page__club print-only">FK Nový Jičín — U8</div>
         <h1 class="detail-page__title">${escHtml(training.title)}</h1>
         <div class="detail-page__badges">
+          ${eventTypeBadge(training.eventType)}
           ${training.theme ? `<span class="badge badge--theme">${escHtml(training.theme)}</span>` : ''}
           ${training.published ? `<span class="badge badge--published">Publikováno</span>` : `<span class="badge badge--draft">Koncept</span>`}
         </div>
@@ -470,8 +485,16 @@ function renderTrainingForm(training, exercises, isNew) {
           <input type="date" id="f-date" class="input" value="${escHtml(t.date)}" required>
         </div>
         <div class="form-field form-field--required form-field--wide">
-          <label for="f-title" class="form-label">Název tréninku</label>
+          <label for="f-title" class="form-label">Název</label>
           <input type="text" id="f-title" class="input" value="${escHtml(t.title)}" required placeholder="např. Trénink zaměřený na dribling">
+        </div>
+        <div class="form-field form-field--required">
+          <label for="f-eventtype" class="form-label">Typ události</label>
+          <select id="f-eventtype" class="input">
+            ${Object.entries(EVENT_TYPES).map(([val, et]) =>
+              `<option value="${escHtml(val)}" ${(t.eventType || 'trénink') === val ? 'selected' : ''}>${et.icon} ${escHtml(et.label)}</option>`
+            ).join('')}
+          </select>
         </div>
         <div class="form-field">
           <label for="f-theme" class="form-label">Téma</label>
@@ -738,11 +761,14 @@ function renderCalendarPage(trainings, year, month, externalEvents) {
     const dateStr  = `${y}-${String(m + 1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
     const isToday  = dateStr === now.toISOString().split('T')[0];
     const dayTrainings = byDate[dateStr] || [];
-    const dots = dayTrainings.map(t =>
-      t.external
-        ? `<span class="cal-event cal-event--ext" title="${escHtml(t.title)}">${escHtml(t.title)}</span>`
-        : `<a href="#/training/${escHtml(t.id)}" class="cal-event" title="${escHtml(t.title)}">${escHtml(t.title)}</a>`
-    ).join('');
+    const dots = dayTrainings.map(t => {
+      if (t.external) {
+        return `<span class="cal-event" style="background:#4285f4" title="${escHtml(t.title)}">${escHtml(t.title)}</span>`;
+      }
+      const et = EVENT_TYPES[t.eventType] || EVENT_TYPES['trénink'];
+      const label = t.location ? `${et.icon} ${escHtml(t.title)} · ${escHtml(t.location)}` : `${et.icon} ${escHtml(t.title)}`;
+      return `<a href="#/training/${escHtml(t.id)}" class="cal-event" style="background:${escHtml(et.color)}" title="${escHtml(t.title)}">${label}</a>`;
+    }).join('');
     cells += `<div class="cal-cell ${isToday ? 'cal-cell--today' : ''} ${dayTrainings.length ? 'cal-cell--has-event' : ''}">
       <span class="cal-cell__day">${dayNum}</span>
       ${dots}
@@ -757,26 +783,36 @@ function renderCalendarPage(trainings, year, month, externalEvents) {
   ].filter(e => e.date && e.date.startsWith(prefix))
    .sort((a, b) => a.date.localeCompare(b.date));
 
+  const legendHtml = `<div class="cal-legend">
+    ${Object.entries(EVENT_TYPES).map(([val, et]) =>
+      `<span class="cal-legend-item"><span class="cal-legend-dot" style="background:${escHtml(et.color)}"></span>${escHtml(et.label)}</span>`
+    ).join('')}
+    <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#4285f4"></span>Google Kalendář</span>
+  </div>`;
+
   const listHtml = allMonthEvents.length === 0
     ? `<p class="cal-empty">V tomto měsíci žádné události.</p>`
-    : allMonthEvents.map(e => e.external
-        ? `<div class="cal-list-item cal-list-item--ext">
+    : allMonthEvents.map(e => {
+        if (e.external) {
+          return `<div class="cal-list-item" style="border-left:4px solid #4285f4">
             <div class="cal-list-item__date">${formatDateShort(e.date)}</div>
             <div class="cal-list-item__info">
               <strong>${escHtml(e.title)}</strong>
               ${e.location ? `<span class="cal-list-item__theme">· ${escHtml(e.location)}</span>` : ''}
             </div>
-            <div class="cal-list-item__meta cal-list-item__meta--ext">📅 Google</div>
-          </div>`
-        : `<a href="#/training/${escHtml(e.id)}" class="cal-list-item">
+            <div class="cal-list-item__meta" style="color:#4285f4">📅 Google</div>
+          </div>`;
+        }
+        const et = EVENT_TYPES[e.eventType] || EVENT_TYPES['trénink'];
+        return `<a href="#/training/${escHtml(e.id)}" class="cal-list-item" style="border-left:4px solid ${escHtml(et.color)}">
             <div class="cal-list-item__date">${formatDateShort(e.date)}</div>
             <div class="cal-list-item__info">
               <strong>${escHtml(e.title)}</strong>
-              ${e.theme ? `<span class="cal-list-item__theme">· ${escHtml(e.theme)}</span>` : ''}
+              ${e.location ? `<span class="cal-list-item__theme">· 📍 ${escHtml(e.location)}</span>` : ''}
             </div>
-            <div class="cal-list-item__meta">⏱ ${escHtml(String(e.duration_total))} min</div>
-          </a>`
-      ).join('');
+            <div class="cal-list-item__meta">${et.icon} ${escHtml(et.label)}${e.duration_total ? ` · ⏱ ${escHtml(String(e.duration_total))} min` : ''}</div>
+          </a>`;
+      }).join('');
 
   const settings = (typeof DataLayer !== 'undefined') ? DataLayer.getSettings() : {};
   const icsBtn = `<button class="btn btn--outline btn--sm" onclick="downloadICS()">📅 Stáhnout .ics</button>`;
@@ -808,8 +844,10 @@ function renderCalendarPage(trainings, year, month, externalEvents) {
     </div>
   </div>
 
+  ${legendHtml}
+
   <section class="cal-list-section">
-    <h2 class="cal-list-title">Tréninky — ${escHtml(monthNames[m])} ${y}</h2>
+    <h2 class="cal-list-title">Události — ${escHtml(monthNames[m])} ${y}</h2>
     ${listHtml}
   </section>`;
 }

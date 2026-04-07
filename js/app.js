@@ -455,6 +455,7 @@ const App = (() => {
     const title = $('f-title')?.value?.trim() || '';
     const theme = $('f-theme')?.value?.trim() || '';
     const location = $('f-location')?.value?.trim() || '';
+    const eventType = $('f-eventtype')?.value || 'trénink';
     const duration_total = parseInt($('f-duration')?.value) || 60;
     const notes = $('f-notes')?.value?.trim() || '';
     const published = $('f-published')?.checked || false;
@@ -477,6 +478,7 @@ const App = (() => {
       id: id || undefined,
       date,
       title,
+      eventType,
       theme,
       location,
       duration_total,
