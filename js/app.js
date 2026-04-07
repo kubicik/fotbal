@@ -678,6 +678,16 @@ const App = (() => {
     return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
   }
 
+  function classifyEvent(title, rules) {
+    if (!rules || !rules.length || !title) return 'trénink';
+    const norm = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const n = norm(title);
+    for (const rule of rules) {
+      if (rule.keyword && n.includes(norm(rule.keyword))) return rule.type || 'trénink';
+    }
+    return 'trénink';
+  }
+
   async function fetchExternalEvents(rawUrl) {
     if (!rawUrl) return [];
     const url = rawUrl.replace(/^webcal:\/\//i, 'https://');
@@ -699,14 +709,19 @@ const App = (() => {
       }
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
-      return parseICS(text).map(ev => ({
-        id:       ev['UID'] || Math.random().toString(36).slice(2),
-        title:    ev['SUMMARY'] || 'Událost',
-        date:     icalToDateStr(ev['DTSTART']) || '',
-        location: ev['LOCATION'] || '',
-        description: ev['DESCRIPTION'] || '',
-        external: true
-      })).filter(ev => ev.date);
+      const rules = DataLayer.getSettings().classificationRules || [];
+      return parseICS(text).map(ev => {
+        const title = ev['SUMMARY'] || 'Událost';
+        return {
+          id:          ev['UID'] || Math.random().toString(36).slice(2),
+          title,
+          date:        icalToDateStr(ev['DTSTART']) || '',
+          location:    ev['LOCATION'] || '',
+          description: ev['DESCRIPTION'] || '',
+          eventType:   classifyEvent(title, rules),
+          external:    true
+        };
+      }).filter(ev => ev.date);
     } catch (e) {
       console.warn('iCal fetch failed:', e.message);
       return [];

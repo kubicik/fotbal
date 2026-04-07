@@ -762,11 +762,11 @@ function renderCalendarPage(trainings, year, month, externalEvents) {
     const isToday  = dateStr === now.toISOString().split('T')[0];
     const dayTrainings = byDate[dateStr] || [];
     const dots = dayTrainings.map(t => {
-      if (t.external) {
-        return `<span class="cal-event" style="background:#4285f4" title="${escHtml(t.title)}">${escHtml(t.title)}</span>`;
-      }
       const et = EVENT_TYPES[t.eventType] || EVENT_TYPES['trénink'];
       const label = t.location ? `${et.icon} ${escHtml(t.title)} · ${escHtml(t.location)}` : `${et.icon} ${escHtml(t.title)}`;
+      if (t.external) {
+        return `<span class="cal-event" style="background:${escHtml(et.color)};opacity:.85" title="${escHtml(t.title)}">${label}</span>`;
+      }
       return `<a href="#/training/${escHtml(t.id)}" class="cal-event" style="background:${escHtml(et.color)}" title="${escHtml(t.title)}">${label}</a>`;
     }).join('');
     cells += `<div class="cal-cell ${isToday ? 'cal-cell--today' : ''} ${dayTrainings.length ? 'cal-cell--has-event' : ''}">
@@ -793,17 +793,17 @@ function renderCalendarPage(trainings, year, month, externalEvents) {
   const listHtml = allMonthEvents.length === 0
     ? `<p class="cal-empty">V tomto měsíci žádné události.</p>`
     : allMonthEvents.map(e => {
+        const et = EVENT_TYPES[e.eventType] || EVENT_TYPES['trénink'];
         if (e.external) {
-          return `<div class="cal-list-item" style="border-left:4px solid #4285f4">
+          return `<div class="cal-list-item" style="border-left:4px solid ${escHtml(et.color)}">
             <div class="cal-list-item__date">${formatDateShort(e.date)}</div>
             <div class="cal-list-item__info">
               <strong>${escHtml(e.title)}</strong>
-              ${e.location ? `<span class="cal-list-item__theme">· ${escHtml(e.location)}</span>` : ''}
+              ${e.location ? `<span class="cal-list-item__theme">· 📍 ${escHtml(e.location)}</span>` : ''}
             </div>
-            <div class="cal-list-item__meta" style="color:#4285f4">📅 Google</div>
+            <div class="cal-list-item__meta" style="color:${escHtml(et.color)}">${et.icon} ${escHtml(et.label)} · 📅 Google</div>
           </div>`;
         }
-        const et = EVENT_TYPES[e.eventType] || EVENT_TYPES['trénink'];
         return `<a href="#/training/${escHtml(e.id)}" class="cal-list-item" style="border-left:4px solid ${escHtml(et.color)}">
             <div class="cal-list-item__date">${formatDateShort(e.date)}</div>
             <div class="cal-list-item__info">

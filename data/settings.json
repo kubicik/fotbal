@@ -3,5 +3,16 @@
   "ageGroup": "U8",
   "season": "Jaro 2026",
   "icalUrl": "https://calendar.google.com/calendar/ical/d7a14f4fd8c4f129f72aefb9e2685635dc5ac5df20dc110c4fe6c568a089500b@group.calendar.google.com/public/basic.ics",
-  "calendarTitle": "FK Nový Jičín U8 — Tréninky"
+  "calendarTitle": "FK Nový Jičín U8 — Tréninky",
+  "classificationRules": [
+    { "keyword": "trénink",    "type": "trénink" },
+    { "keyword": "training",   "type": "trénink" },
+    { "keyword": "doma",       "type": "zapas_doma" },
+    { "keyword": "vs.",        "type": "zapas_doma" },
+    { "keyword": "venku",      "type": "zapas_venku" },
+    { "keyword": "away",       "type": "zapas_venku" },
+    { "keyword": "turnaj",     "type": "turnaj" },
+    { "keyword": "tournament", "type": "turnaj" },
+    { "keyword": "cup",        "type": "turnaj" }
+  ]
 }

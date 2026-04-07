@@ -842,19 +842,62 @@ function renderAppSettingsSection() {
         ${s.icalUrl ? `<p class="hint">Aktuální zdroj: <a href="${esc(s.icalUrl)}" target="_blank" rel="noopener">${esc(s.icalUrl)}</a></p>` : ''}
       </div>
 
+      <div class="export-card" style="margin-bottom:1.5rem">
+        <h2>🏷️ Pravidla klasifikace (Google Kalendář)</h2>
+        <p>Pokud název události obsahuje klíčové slovo, přiřadí se jí automaticky typ. Pravidla se vyhodnocují shora dolů, první shoda vyhraje.</p>
+        <div id="rules-list" class="rules-list"></div>
+        <button type="button" class="btn btn--outline btn--sm" id="btn-add-rule">+ Přidat pravidlo</button>
+      </div>
+
       <div class="modal-actions">
         <button type="submit" class="btn btn--primary">💾 Uložit nastavení</button>
       </div>
     </form>`;
 
+  const EVENT_TYPE_OPTIONS = [
+    { value: 'trénink',     label: '⚽ Trénink' },
+    { value: 'zapas_doma',  label: '🏠 Zápas doma' },
+    { value: 'zapas_venku', label: '🚌 Zápas venku' },
+    { value: 'turnaj',      label: '🏆 Turnaj' }
+  ];
+
+  function renderRuleRow(rule) {
+    const typeOptions = EVENT_TYPE_OPTIONS.map(o =>
+      `<option value="${esc(o.value)}" ${rule.type === o.value ? 'selected' : ''}>${esc(o.label)}</option>`
+    ).join('');
+    const div = document.createElement('div');
+    div.className = 'rule-row';
+    div.innerHTML = `
+      <span class="rule-row__if">Pokud název obsahuje</span>
+      <input type="text" class="input input--sm rule-keyword" value="${esc(rule.keyword || '')}" placeholder="např. trénink">
+      <span class="rule-row__then">→</span>
+      <select class="input input--sm rule-type">${typeOptions}</select>
+      <button type="button" class="btn btn--sm btn--danger btn--icon-only rule-remove" title="Odebrat">✕</button>`;
+    div.querySelector('.rule-remove').addEventListener('click', () => div.remove());
+    return div;
+  }
+
+  const rulesList = document.getElementById('rules-list');
+  (s.classificationRules || []).forEach(r => rulesList.appendChild(renderRuleRow(r)));
+
+  document.getElementById('btn-add-rule').addEventListener('click', () => {
+    rulesList.appendChild(renderRuleRow({ keyword: '', type: 'trénink' }));
+  });
+
   document.getElementById('settings-form').addEventListener('submit', e => {
     e.preventDefault();
+    const rules = [...rulesList.querySelectorAll('.rule-row')].map(row => ({
+      keyword: row.querySelector('.rule-keyword').value.trim(),
+      type:    row.querySelector('.rule-type').value
+    })).filter(r => r.keyword);
+
     DataLayer.saveSettings({
-      teamName:      document.getElementById('sf-team').value.trim(),
-      ageGroup:      document.getElementById('sf-age').value.trim(),
-      season:        document.getElementById('sf-season').value.trim(),
-      icalUrl:       document.getElementById('sf-ical').value.trim(),
-      calendarTitle: document.getElementById('sf-caltitle').value.trim()
+      teamName:              document.getElementById('sf-team').value.trim(),
+      ageGroup:              document.getElementById('sf-age').value.trim(),
+      season:                document.getElementById('sf-season').value.trim(),
+      icalUrl:               document.getElementById('sf-ical').value.trim(),
+      calendarTitle:         document.getElementById('sf-caltitle').value.trim(),
+      classificationRules:   rules
     });
     showToast('Nastavení uloženo!');
   });
