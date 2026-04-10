@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "id": "tr-0407-01",
+    "date": "2026-04-07",
+    "title": "Trénink 7. dubna",
+    "eventType": "trénink",
+    "theme": "Rychlost a vedení míče",
+    "location": "",
+    "duration_total": 90,
+    "notes": "",
+    "published": true,
+    "exercises": [
+      { "exerciseId": "ex-0407-01", "duration": 5,  "order": 1, "notes": "Dohlédněte na správné provedení běžecké abecedy. Honza vede skupinu v uceleném útvaru." },
+      { "exerciseId": "ex-lup-001", "duration": 10, "order": 2, "notes": "Důraz na sprint, reakční rychlost a férovost při 'krádeži' míče." },
+      { "exerciseId": "ex-0407-02", "duration": 15, "order": 3, "notes": "Zaznamenávejte časy do tabulky. Dbejte na motivaci k maximálnímu výkonu." },
+      { "exerciseId": "ex-0407-03", "duration": 10, "order": 4, "notes": "Varianta: Míčem se nekope, ale hází. Tomáš hlídá bezpečnost a fair-play." },
+      { "exerciseId": "ex-0407-04", "duration": 10, "order": 5, "notes": "Honza měří čas nebo nasazuje soutěž dvojic (paralelní slalom)." },
+      { "exerciseId": "ex-0407-05", "duration": 10, "order": 6, "notes": "Klíčový je moment změny směru a následná akcelerace. Tomáš opravuje techniku klamavého pohybu." },
+      { "exerciseId": "ex-0407-06", "duration": 10, "order": 7, "notes": "Zbyněk zadává různé způsoby vedení míče (jen slabší nohou apod.)." },
+      { "exerciseId": "ex-0407-07", "duration": 20, "order": 8, "notes": "Časté střídání, vysoká intenzita. Dohlídka na férovost a komunikaci." }
+    ],
+    "createdAt": "2026-04-07"
+  }
+]
