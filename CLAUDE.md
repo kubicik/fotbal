@@ -19,50 +19,59 @@ Admin panel: `https://kubicik.github.io/fotbal/admin.html` (login: admin / admin
 
 ## Architecture
 
-**Purely static** — no build tool, no framework, no npm. Three HTML pages served directly by GitHub Pages.
-
-### Pages
-| File | Purpose |
-|---|---|
-| `index.html` | Public site (trainings, calendar, exercises, concept) |
-| `admin.html` | Admin panel — login-gated CRUD for all data |
+**Purely static** — no build tool, no framework, no npm. Two HTML pages served directly by GitHub Pages.
 
 ### Data flow
 - On first load, `DataLayer.init()` fetches all `data/*.json` files and seeds **localStorage**
 - All edits write to localStorage only
-- Publishing = export JSON from admin → commit to `data/` → push → GitHub Pages
+- Publishing = edit JSON in `data/` → commit → push → GitHub Pages serves updated data
+- Admin has "Načíst data z webu" button (`reloadFromRepo()`) to reseed localStorage from deployed JSON
 
 ### JS modules (loaded via `<script src>`, no modules/bundler)
 All files share a single global scope.
 
 | File | Responsibility |
 |---|---|
-| `js/data.js` | `DataLayer` IIFE — localStorage CRUD for exercises, trainings, categories, users, concept, settings. Also `exportData()`, `reloadFromRepo()` |
-| `js/views.js` | Pure functions returning HTML strings. Globals: `EVENT_TYPES`, `CATEGORY_LABELS`, `escHtml()`, `categoryBadge()`, `eventTypeBadge()`, `renderCalendarPage()`, etc. |
-| `js/app.js` | `App` IIFE — hash router (`#/trainings`, `#/calendar/:y/:m`, `#/exercise/:id`, etc.), event delegation, form save logic, iCal fetch + parser, ICS export |
-| `js/pdf.js` | `PDFExport` — wraps `window.print()` with title management |
-| `js/admin.js` | Standalone admin logic — login (sessionStorage), section routing, CRUD modals for exercises/categories/users/concept/settings |
+| `js/data.js` | `DataLayer` IIFE — localStorage CRUD for all entities. `init()` seeds on first load and backfills missing keys (pattern used when new data files are added). `exportData()`, `reloadFromRepo()` |
+| `js/views.js` | Pure functions returning HTML strings. Globals: `EVENT_TYPES`, `escHtml()`, `renderMarkdown()`, `resolveLocation()`, `renderCalendarPage()`, `renderPlayersPage()`, `renderTestingsPage()`, `renderTestingDetail()`, etc. |
+| `js/app.js` | `App` IIFE — hash router, event delegation, form save logic, iCal fetch + parser (`parseICS()`), ICS export |
+| `js/pdf.js` | `PDFExport` — wraps `window.print()` |
+| `js/admin.js` | Standalone admin — login (sessionStorage), section routing, full-page editors (training composer, testing event editor), CRUD modals |
 
 ### Data files (`data/*.json`)
-All loaded on init, editable via admin, exported for publishing:
-- `exercises.json`, `trainings.json`, `categories.json`, `users.json`
-- `concept.json` — 3-month plan structure
-- `settings.json` — team info, iCal URL, `classificationRules[]`
+| File | Contents |
+|---|---|
+| `exercises.json` | Exercise library |
+| `trainings.json` | Training sessions with ordered exercise references |
+| `categories.json` | Exercise categories (id, name, slug, color) |
+| `users.json` | Admin users |
+| `players.json` | Squad — players (`role: "hráč"`) and coaches (`role: "trenér"`) |
+| `testings.json` | Testing events — each event has N tests, each test has per-player results with multiple attempt values |
+| `concept.json` | 3-month plan structure |
+| `settings.json` | Team info, iCal URL, `classificationRules[]` (keyword→eventType), `locationAliases[]` (keyword→short name) |
 
 ### Key patterns
 
-**Routing** (index.html): hash-based `#/section/id/action`. Handled in `App` → `handleRoute()`.
+**Routing** (index.html): hash-based `#/section/id/action`. Routes: `trainings`, `training/:id`, `exercises`, `exercise/:id`, `calendar/:y/:m`, `players`, `testings`, `testing/:id`, `concept`.
 
-**Categories**: stored in localStorage as `fnj_categories`. The `categoryBadge()` function in views.js looks them up dynamically — color comes from `cat.color`, not CSS classes.
+**Adding a new data type**: (1) add key to `DATA_KEYS` in data.js, (2) add backfill check in `init()` for already-initialized localStorage, (3) add fetch to `init()` first-run block, `reloadFromRepo()`, and `exportData()`, (4) export CRUD functions in public API.
 
-**Event types** (`EVENT_TYPES` in views.js): `trénink | zapas_doma | zapas_venku | turnaj`. Stored as `training.eventType`. External iCal events get auto-classified via `classifyEvent(title, rules)` in app.js using `settings.classificationRules`.
+**Event types** (`EVENT_TYPES` in views.js AND admin.js — both must stay in sync): `trénink | zapas_doma | zapas_venku | turnaj | jine`. External iCal events are classified via `classifyEvent(title, rules)` in app.js — default fallback is `'jine'` (gray), not `'trénink'`.
 
-**Images on exercises**: stored as either `exercise.imageUrl` (URL string) or `exercise.imageData` (base64 data URL from file upload). Views prefer `imageData` over `imageUrl`.
+**Calendar location display**: `resolveLocation(location, aliases)` in views.js maps raw location strings to short names using `settings.locationAliases[]`. Calendar event blocks show category label + location (two lines), full title in `title` attribute.
 
-**External calendar** (iCal): `fetchExternalEvents()` in app.js tries direct CORS fetch, falls back to `api.allorigins.win` proxy. Parsed with a hand-written iCal parser (`parseICS()`).
+**Players/coaches**: same `players` array, distinguished by `role` field (`"hráč"` default, `"trenér"`). Public roster shows coaches section above players section.
 
-**Edit mode** (index.html): toggled via header switch, stored in localStorage. When OFF, edit/delete buttons are hidden — this is the default state for sharing URLs with assistants.
+**Testing events model**: `{ id, date, name, description, tests: [{ id, testName, unit, lowerIsBetter, results: [{ playerId, values: number[] }] }] }`. Completely separate from `player.tests[]` (legacy, kept empty).
+
+**Markdown**: `renderMarkdown()` in views.js (public) — supports `**bold**`, `*italic*`, `- bullets`, `1. numbered`, `---` divider. Admin has its own copy in admin.js. Used for exercise descriptions and training notes.
+
+**Images on exercises**: `exercise.imageUrl` (URL) or `exercise.imageData` (base64). Views prefer `imageData`.
+
+**External calendar** (iCal): direct CORS fetch first, falls back to `api.allorigins.win` proxy.
+
+**Edit mode** (index.html): toggled via header switch, stored in localStorage. Default OFF — hides edit/delete buttons for sharing.
 
 ### CSS
-- `css/style.css` — public site styles
-- `css/admin.css` — admin panel styles (self-contained, no shared variables with style.css)
+- `css/style.css` — public site (no shared variables with admin)
+- `css/admin.css` — admin panel (self-contained)
